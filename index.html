@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lingua AI — Master Italian &amp; French with AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+  // Apply saved theme before paint to avoid a light-mode flash
+  (function(){ try { var t = localStorage.getItem('lingua-theme'); if(t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e){} })();
+</script>
+</head>
+<body>
+<div class="bg-fx" aria-hidden="true"><div class="day-layer"><div class="day-glow a"></div><div class="day-glow b"></div><div class="day-glow c"></div></div><div class="night-layer"><div class="moon"></div><div class="stars" id="bg-stars"></div></div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="container">
+    <a href="#" class="nav-logo"><span class="dot"></span>Lingua AI</a>
+    <div class="nav-links">
+      <a href="#languages">Languages</a>
+      <a href="#features">Features</a>
+      <a href="#tutor">AI Tutor</a>
+      <a href="#about">About</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="icon">🌙</span></button>
+      <a href="signin.html" class="nav-signin">Sign In</a>
+      <a href="signin.html?tab=signup" class="btn btn-primary">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="hero-copy">
+      <span class="eyebrow"><span class="dotpulse"></span>Now with real-time pronunciation scoring</span>
+      <h1>Learn Italian &amp; French with an AI that <span class="accent">learns how you learn.</span></h1>
+      <p>Lingua AI combines artificial intelligence, personalized learning, speech recognition, and adaptive lessons to help you become fluent faster than traditional language apps.</p>
+      <div class="hero-actions">
+        <a href="signin.html?tab=signup" class="btn btn-blue btn-lg">Start Learning Free</a>
+        <a href="#tutor" class="btn-watch">
+          <span class="play-circle">▶</span> Watch Demo
+        </a>
+      </div>
+      <div class="hero-trust">
+        <div class="avatar-stack">
+          <div class="av"></div><div class="av"></div><div class="av"></div><div class="av"></div>
+        </div>
+        <span><strong>100,000+</strong> learners already speaking with confidence</span>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="mock-card mock-main">
+        <div class="mock-head">
+          <div class="ai-avatar">AI</div>
+          <div>
+            <div class="name">Lingua Tutor</div>
+            <div class="status">Listening</div>
+          </div>
+        </div>
+        <div class="chat-bubble user">How do I order coffee in Italian?</div>
+        <div class="chat-bubble ai">You can say: <i>"Vorrei un cappuccino, per favore."</i></div>
+        <div class="stat-row">
+          <div class="stat-chip"><div class="val">94%</div><div class="lbl">Pronunciation</div></div>
+          <div class="stat-chip green"><div class="val">A2 → B1</div><div class="lbl">Grammar Level</div></div>
+          <div class="stat-chip"><div class="val">1,248</div><div class="lbl">Words Learned</div></div>
+          <div class="stat-chip green"><div class="val">+40 XP</div><div class="lbl">Today</div></div>
+        </div>
+      </div>
+
+      <div class="mock-card mock-pill mock-pill-1">
+        <div class="ring"></div>
+        <div class="txt"><strong>Daily Streak</strong><span>18 days 🔥</span></div>
+      </div>
+
+      <div class="mock-card mock-pill mock-pill-2">
+        <div class="ring" style="background:conic-gradient(var(--green) 0% 92%, var(--gray-100) 92% 100%);"></div>
+        <div class="txt"><strong>Accent Match</strong><span>Native-level</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LANGUAGES -->
+<section class="section-pad" id="languages">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Languages</span>
+      <h2>Two languages. One AI that adapts to you.</h2>
+      <p>Every path is built from CEFR A1 to C2, shaped in real time by how you speak, listen, and learn.</p>
+    </div>
+    <div class="lang-grid">
+      <div class="lang-card lang-it" data-reveal>
+        <span class="flag">🇮🇹</span>
+        <h3>Italian</h3>
+        <div class="level">Beginner → Advanced</div>
+        <ul>
+          <li>AI Speaking Practice</li>
+          <li>Grammar Coach</li>
+          <li>Pronunciation Analysis</li>
+          <li>Italian Culture &amp; Context</li>
+        </ul>
+        <div class="cefr"><span>A1</span><span>A2</span><span>B1</span><span>B2</span><span>C1</span><span>C2</span></div>
+      </div>
+      <div class="lang-card lang-fr" data-reveal>
+        <span class="flag">🇫🇷</span>
+        <h3>French</h3>
+        <div class="level">Beginner → Advanced</div>
+        <ul>
+          <li>Conversation Practice</li>
+          <li>Vocabulary Builder</li>
+          <li>Listening Comprehension</li>
+          <li>Grammar Mastery</li>
+        </ul>
+        <div class="cefr"><span>A1</span><span>A2</span><span>B1</span><span>B2</span><span>C1</span><span>C2</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY LINGUA AI / FEATURES -->
+<section class="section-pad bg-gray" id="features">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Why Lingua AI</span>
+      <h2>Everything a great tutor gives you. Available every hour.</h2>
+      <p>Seven systems working together so every minute you spend actually moves you toward fluency.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card" data-reveal><div class="feat-icon">🧠</div><h3>Personalized AI Tutor</h3><p>Builds lessons around your specific strengths and weaknesses, not a fixed curriculum.</p></div>
+      <div class="feat-card" data-reveal><div class="feat-icon">🎙</div><h3>AI Pronunciation Coach</h3><p>Real-time pronunciation analysis with accent feedback against native speech patterns.</p></div>
+      <div class="feat-card" data-reveal><div class="feat-icon">💬</div><h3>AI Conversations</h3><p>Unlimited natural conversations across travel, daily life, school, business, and culture.</p></div>
+      <div class="feat-card" data-reveal><div class="feat-icon">📚</div><h3>Adaptive Lessons</h3><p>Every lesson changes based on your performance. No two learning paths are identical.</p></div>
+      <div class="feat-card" data-reveal><div class="feat-icon">📊</div><h3>Smart Progress Analytics</h3><p>Daily goals, XP, learning streaks, weekly reports, and vocabulary retention tracking.</p></div>
+      <div class="feat-card" data-reveal><div class="feat-icon">📝</div><h3>Instant Grammar Corrections</h3><p>The AI explains mistakes, shows why an answer is wrong, and offers natural alternatives.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD PREVIEW -->
+<section class="section-pad" id="tutor">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Your Dashboard</span>
+      <h2>A polished workspace built around your progress.</h2>
+      <p>Everything you need to know about your learning, in one calm, focused view.</p>
+    </div>
+    <div class="dash-wrap" data-reveal>
+      <div class="dash-topbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></div>
+      <div class="dash-body">
+        <div class="dash-side">
+          <div class="item active"><span class="ic"></span>Home</div>
+          <div class="item"><span class="ic"></span>Lessons</div>
+          <div class="item"><span class="ic"></span>Vocabulary</div>
+          <div class="item"><span class="ic"></span>Speaking</div>
+          <div class="item"><span class="ic"></span>AI Tutor</div>
+          <div class="item"><span class="ic"></span>Progress</div>
+          <div class="item"><span class="ic"></span>Settings</div>
+        </div>
+        <div class="dash-main">
+          <div class="greet">Bentornato, Maya 👋</div>
+          <div class="sub">Italian · Level A2 · 18 day streak</div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="lbl">Daily XP</div><div class="val">180</div></div>
+            <div class="kpi"><div class="lbl">Weekly Streak</div><div class="val">6 / 7</div></div>
+            <div class="kpi"><div class="lbl">Vocabulary</div><div class="val">1,248</div></div>
+            <div class="kpi"><div class="lbl">Speaking Score</div><div class="val green">94%</div></div>
+          </div>
+          <div class="dash-lower">
+            <div class="ring-card">
+              <div class="big-ring" data-pct="68%"></div>
+              <div class="txt"><strong>Today's Goal</strong><span>20 of 30 XP earned — one lesson left to close your ring.</span></div>
+            </div>
+            <div class="review-card">
+              <div class="title">Upcoming Reviews</div>
+              <div class="review-row"><span class="word">vorrei</span><span class="tag2">Due today</span></div>
+              <div class="review-row"><span class="word">appuntamento</span><span class="tag2">Tomorrow</span></div>
+              <div class="review-row"><span class="word">purtroppo</span><span class="tag2">In 2 days</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-cta" data-reveal>
+      <p>This is a live preview — the real thing has your name on it.</p>
+      <a href="app.html" class="btn btn-blue">Open the Full Dashboard →</a>
+    </div>
+  </div>
+</section>
+
+<!-- AI CHAT SHOWCASE -->
+<section class="section-pad bg-gray">
+
+  <div class="container showcase">
+    <div class="showcase-panel" data-reveal>
+      <div class="qa-line">
+        <div class="qa-avatar ai">AI</div>
+        <div class="qa-bubble">Describe your weekend in Italian.</div>
+      </div>
+      <div class="qa-line">
+        <div class="qa-avatar user">M</div>
+        <div class="qa-bubble">Sabato sono andato al mare.</div>
+      </div>
+      <div class="feedback-card">
+        <div class="fb-head">✅ Excellent!</div>
+        <div class="fb-row"><span class="k">Grammar</span><span class="v">Correct use of the passato prossimo with "andare."</span></div>
+        <div class="fb-row"><span class="k">Better phrasing</span><span class="v">"Sabato scorso sono andato al mare" sounds more natural.</span></div>
+        <div class="fb-row"><span class="k">New vocabulary</span><span class="v">scorso, la spiaggia, abbronzarsi</span></div>
+        <div class="fb-btn">🔊 Hear pronunciation</div>
+      </div>
+    </div>
+    <div class="showcase-copy" data-reveal>
+      <span class="tag">AI Conversations</span>
+      <h2>Corrections that teach, not just flag mistakes.</h2>
+      <p>Every reply comes with a grammar explanation, a more natural alternative, and new vocabulary pulled straight from your own sentence — then a follow-up question to keep you talking.</p>
+      <div class="mini-list">
+        <div class="mi"><div class="num">1</div><div><strong>You speak or type naturally</strong><span>No menus, no multiple choice — just conversation.</span></div></div>
+        <div class="mi"><div class="num">2</div><div><strong>The AI grades in real time</strong><span>Grammar, tone, and word choice, evaluated instantly.</span></div></div>
+        <div class="mi"><div class="num">3</div><div><strong>You get a path forward</strong><span>A better phrasing, new words, and a follow-up prompt.</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LEARNING JOURNEY -->
+<section class="section-pad" id="journey">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Learning Journey</span>
+      <h2>A clear road from your first word to fluency.</h2>
+      <p>Every level is unlocked in order, so you always know exactly where you stand.</p>
+    </div>
+    <div class="journey-cols">
+      <div class="journey-col" data-reveal>
+        <h3>🇮🇹 Italian</h3>
+        <div class="road">
+          <div class="fill-line"></div>
+          <div class="lvl done"><div class="code">A1 — Foundations</div><div class="desc">Greetings, numbers, everyday phrases</div></div>
+          <div class="lvl done"><div class="code">A2 — Everyday Italian</div><div class="desc">Ordering, directions, small talk</div></div>
+          <div class="lvl done"><div class="code">B1 — Independent Use</div><div class="desc">Opinions, past &amp; future tense</div></div>
+          <div class="lvl"><div class="code">B2 — Fluency Building</div><div class="desc">Debate, nuance, workplace Italian</div></div>
+          <div class="lvl"><div class="code">C1 — Advanced Command</div><div class="desc">Idioms, tone, complex writing</div></div>
+          <div class="lvl"><div class="code">C2 — Mastery</div><div class="desc">Near-native precision</div></div>
+        </div>
+      </div>
+      <div class="journey-col" data-reveal>
+        <h3>🇫🇷 French</h3>
+        <div class="road">
+          <div class="fill-line"></div>
+          <div class="lvl done"><div class="code">A1 — Foundations</div><div class="desc">Greetings, numbers, everyday phrases</div></div>
+          <div class="lvl done"><div class="code">A2 — Everyday French</div><div class="desc">Ordering, directions, small talk</div></div>
+          <div class="lvl"><div class="code">B1 — Independent Use</div><div class="desc">Opinions, past &amp; future tense</div></div>
+          <div class="lvl"><div class="code">B2 — Fluency Building</div><div class="desc">Debate, nuance, workplace French</div></div>
+          <div class="lvl"><div class="code">C1 — Advanced Command</div><div class="desc">Idioms, tone, complex writing</div></div>
+          <div class="lvl"><div class="code">C2 — Mastery</div><div class="desc">Near-native precision</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="section-pad" style="padding-top:0;">
+  <div class="container">
+    <div class="stats-band" data-reveal>
+      <div class="stat-item"><div class="num" data-count="100000" data-suffix="+">0</div><div class="lbl">Students</div></div>
+      <div class="stat-item"><div class="num" data-count="5000000" data-suffix="+">0</div><div class="lbl">Lessons Completed</div></div>
+      <div class="stat-item"><div class="num" data-count="97" data-suffix="%">0</div><div class="lbl">Learning Satisfaction</div></div>
+      <div class="stat-item"><div class="num" data-decimal="4.9" data-suffix="★">0</div><div class="lbl">Average Rating</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPLORE + ABOUT -->
+<section class="section-pad bg-gray" id="about">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">About Lingua AI</span>
+      <h2>Built by people who believe fluency shouldn't take years.</h2>
+      <p>Lingua AI is a small team of linguists, engineers, and language teachers who got tired of apps that teach you to match words instead of actually speak. Every lesson, correction, and conversation here is generated in real time around you — not pulled from a fixed script written for everyone.</p>
+    </div>
+
+    <div class="explore-grid">
+      <a href="app.html" class="explore-card" data-reveal>
+        <div class="explore-icon">🏠</div>
+        <strong>Your Dashboard</strong>
+        <span>XP, streaks, lessons, and reviews — all in one home screen.</span>
+        <span class="explore-link">Open Dashboard →</span>
+      </a>
+      <a href="app.html#tutor" class="explore-card" data-reveal>
+        <div class="explore-icon">💬</div>
+        <strong>AI Tutor Chat</strong>
+        <span>A real conversation with instant grammar feedback.</span>
+        <span class="explore-link">Start Chatting →</span>
+      </a>
+      <a href="speaking.html?mode=free" class="explore-card" data-reveal>
+        <div class="explore-icon">🎙</div>
+        <strong>Voice Practice</strong>
+        <span>Speak out loud and get pronunciation feedback live.</span>
+        <span class="explore-link">Try Speaking →</span>
+      </a>
+      <a href="signin.html?tab=signup" class="explore-card" data-reveal>
+        <div class="explore-icon">✨</div>
+        <strong>Create Your Account</strong>
+        <span>Start free — no credit card, no commitment.</span>
+        <span class="explore-link">Sign Up →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section-pad">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Testimonials</span>
+      <h2>Learners speaking with real confidence.</h2>
+    </div>
+    <div class="test-grid">
+      <div class="test-card" data-reveal>
+        <div class="stars">★★★★★</div>
+        <p>I used Lingua AI for six months before moving to Milan. I landed and could actually hold a conversation with my landlord.</p>
+        <div class="test-person"><div class="av"></div><div><strong>Sofia R.</strong><span>Moved to Italy</span></div></div>
+      </div>
+      <div class="test-card" data-reveal>
+        <div class="stars">★★★★★</div>
+        <p>Studying abroad in Lyon felt so much less intimidating after a semester of daily AI conversation practice.</p>
+        <div class="test-person"><div class="av"></div><div><strong>Daniel K.</strong><span>Studying abroad</span></div></div>
+      </div>
+      <div class="test-card" data-reveal>
+        <div class="stars">★★★★★</div>
+        <p>My company needed me fluent in French for client calls in three months. The AI Tutor got me there.</p>
+        <div class="test-person"><div class="av"></div><div><strong>Amara T.</strong><span>Learning for work</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section-pad" id="pricing">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Pricing</span>
+      <h2>Simple plans. Serious progress.</h2>
+      <p>Start free. Upgrade whenever you're ready to go further.</p>
+    </div>
+    <div class="price-grid">
+      <div class="price-card" data-reveal>
+        <h3>Free</h3>
+        <div class="desc">Get a feel for how Lingua AI teaches.</div>
+        <div class="price">$0<span>/month</span></div>
+        <ul>
+          <li>Daily lessons</li>
+          <li>Limited AI chat</li>
+          <li>Basic pronunciation feedback</li>
+        </ul>
+        <a href="signin.html?tab=signup" class="btn btn-ghost">Start Free</a>
+      </div>
+      <div class="price-card featured" data-reveal>
+        <div class="price-badge">MOST POPULAR</div>
+        <h3>Pro</h3>
+        <div class="desc" style="opacity:.85;">For learners serious about fluency.</div>
+        <div class="price">$19<span style="opacity:.75;">/month</span></div>
+        <ul>
+          <li>Unlimited AI conversations</li>
+          <li>Adaptive lessons</li>
+          <li>Advanced pronunciation coach</li>
+          <li>Grammar Coach</li>
+          <li>Vocabulary Memory system</li>
+          <li>Progress analytics</li>
+        </ul>
+        <a href="signin.html?tab=signup" class="btn" style="background:white;color:var(--blue);width:100%;">Get Pro</a>
+      </div>
+      <div class="price-card" data-reveal>
+        <h3>Premium</h3>
+        <div class="desc">Everything in Pro, plus live coaching.</div>
+        <div class="price">$39<span>/month</span></div>
+        <ul>
+          <li>Live AI speaking sessions</li>
+          <li>Personalized study plans</li>
+          <li>Priority AI responses</li>
+          <li>Future language access</li>
+        </ul>
+        <a href="signin.html?tab=signup" class="btn btn-ghost">Get Premium</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="section-pad">
+  <div class="container">
+    <div class="final-cta" data-reveal>
+      <h2>Start speaking Italian &amp; French with confidence.</h2>
+      <p>Join thousands of learners using AI to reach fluency faster.</p>
+      <div class="hero-actions">
+        <a href="signin.html?tab=signup" class="btn btn-blue btn-lg">Start Free</a>
+        <a href="#pricing" class="btn btn-ghost btn-lg">See Pricing</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="#" class="nav-logo"><span class="dot"></span>Lingua AI</a>
+        <p>Language learning, reimagined by artificial intelligence.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#languages">Languages</a>
+        <a href="#tutor">AI Tutor</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Careers</a>
+        <a href="#">Blog</a>
+      </div>
+      <div class="foot-col">
+        <h4>Legal</h4>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookies</a>
+      </div>
+      <div class="foot-col">
+        <h4>Support</h4>
+        <a href="#">Contact</a>
+        <a href="#">Help Centre</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Lingua AI. All rights reserved.</span>
+      <div class="soc">
+        <a href="#">𝕏</a>
+        <a href="#">in</a>
+        <a href="#">ig</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+</body>
+</html>

@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Dashboard — Lingua AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+  (function(){ try { var t = localStorage.getItem('lingua-theme'); if(t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e){} })();
+</script>
+<script src="config.js"></script>
+<script src="openai.js"></script>
+<script src="progress.js"></script>
+<script>
+  // Load Firebase glue; if it fails, remember why and stop waiting immediately.
+  import('./firebase-cloud.js').catch(function(e){
+    window.__cloudLoadError = e; console.error('Firebase failed to load:', e);
+    if(window.__linguaCloudResolve) window.__linguaCloudResolve(null);
+  });
+</script>
+</head>
+<body>
+<div class="bg-fx" aria-hidden="true"><div class="day-layer"><div class="day-glow a"></div><div class="day-glow b"></div><div class="day-glow c"></div></div><div class="night-layer"><div class="moon"></div><div class="stars" id="bg-stars"></div></div></div>
+
+<div class="view-app">
+  <div class="app-shell">
+    <aside class="app-sidebar">
+      <a href="index.html" class="nav-logo app-logo"><span class="dot"></span>Lingua AI</a>
+      <nav class="app-nav">
+        <button class="app-nav-item active" data-tab="home" onclick="setAppTab('home')"><span class="ic"></span>Home</button>
+        <button class="app-nav-item" data-tab="lessons" onclick="setAppTab('lessons')"><span class="ic"></span>Lessons</button>
+        <button class="app-nav-item" data-tab="vocab" onclick="setAppTab('vocab')"><span class="ic"></span>Vocabulary</button>
+        <button class="app-nav-item" data-tab="speaking" onclick="setAppTab('speaking')"><span class="ic"></span>Speaking</button>
+        <button class="app-nav-item" data-tab="tutor" onclick="setAppTab('tutor')"><span class="ic"></span>AI Tutor</button>
+        <button class="app-nav-item" data-tab="progress" onclick="setAppTab('progress')"><span class="ic"></span>Progress</button>
+        <button class="app-nav-item" data-tab="settings" onclick="setAppTab('settings')"><span class="ic"></span>Settings</button>
+      </nav>
+      <a href="index.html" class="app-signout">← Sign out</a>
+    </aside>
+
+    <main class="app-main">
+      <div class="app-topbar">
+        <div class="app-search">🔍 <span>Search lessons, words, topics…</span></div>
+        <button class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="icon">🌙</span></button>
+        <div class="app-user">
+          <div class="streak-pill" id="streak-pill">🔥 Start your streak today</div>
+          <div class="user-chip"><div class="av"></div><span id="topbar-name">Maya</span></div>
+        </div>
+      </div>
+
+      <!-- HOME TAB -->
+      <div class="app-tab active" id="tab-home">
+        <div class="app-greet-row">
+          <div>
+            <h1 class="app-greet">Bentornata, <span id="greet-name">Maya</span> 👋</h1>
+            <p class="app-greet-sub" id="greet-sub">Italian · Level A1 · Just getting started</p>
+          </div>
+          <button class="btn btn-blue" onclick="setAppTab('lessons')">Resume Lesson</button>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi"><div class="lbl">Daily XP</div><div class="val" id="home-kpi-xp">0</div></div>
+          <div class="kpi"><div class="lbl">Weekly Streak</div><div class="val" id="home-kpi-streak">0 / 7</div></div>
+          <div class="kpi"><div class="lbl">Vocabulary</div><div class="val" id="home-kpi-vocab">0</div></div>
+          <div class="kpi"><div class="lbl">Pronunciation</div><div class="val" id="home-kpi-pronunciation">—</div></div>
+        </div>
+
+        <div class="app-grid-2">
+          <div class="panel continue-card">
+            <div class="panel-title" id="continue-title">Ready when you are</div>
+            <div class="continue-row">
+              <div class="continue-icon" id="continue-icon">👋</div>
+              <div class="continue-info">
+                <span class="continue-tag" id="continue-tag">Unit 1 · Lesson 1</span>
+                <strong id="continue-name">Learning: Greetings &amp; Introductions</strong>
+                <span id="continue-sub">Not started yet</span>
+                <div class="progress-track"><div class="progress-fill" id="continue-progress" style="width:0%"></div></div>
+              </div>
+              <button class="btn btn-blue btn-glow" id="continue-btn" onclick="setAppTab('lessons')">Start</button>
+            </div>
+          </div>
+          <div class="ring-card">
+            <div class="big-ring" id="home-ring" data-pct="0%" style="background:conic-gradient(var(--gray-100) 0% 100%);"></div>
+            <div class="txt"><strong>Today's Goal</strong><span id="home-ring-caption">0 of 30 XP earned — complete a lesson to get started.</span></div>
+          </div>
+        </div>
+
+        <div class="app-grid-2">
+          <div class="panel">
+            <div class="panel-title">Start here</div>
+            <div class="mini-lesson-list" id="recommended-lessons-list"></div>
+          </div>
+          <div class="review-card">
+            <div class="title">Upcoming Reviews</div>
+            <div id="upcoming-reviews-body">
+              <p style="font-size:13px;color:var(--ink-60);padding:8px 0;">No reviews yet — words you learn will show up here for spaced-repetition practice.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LESSONS TAB -->
+      <div class="app-tab" id="tab-lessons">
+        <h1 class="app-greet" id="lessons-title">Italian Course</h1>
+        <p class="app-greet-sub" id="lessons-sub">Work through each unit's 10 lessons, then clear the review to unlock the next one.</p>
+        <div id="lesson-cta-host"><!-- populated by renderLessonsTab(): glowing "up next" CTA --></div>
+        <div id="units-host"><!-- populated by renderLessonsTab(): one block per unit --></div>
+      </div>
+
+      <!-- VOCAB TAB -->
+      <div class="app-tab" id="tab-vocab">
+        <h1 class="app-greet">Vocabulary</h1>
+        <p class="app-greet-sub" id="vocab-count-sub">0 words learned yet</p>
+        <div id="vocab-body">
+          <div class="panel" style="text-align:center;padding:48px 24px;">
+            <p style="font-size:14px;color:var(--ink-60);">You haven't learned any words yet — complete a lesson and they'll start showing up here for review.</p>
+            <button class="btn btn-blue" style="margin-top:16px;" onclick="setAppTab('lessons')">Start Your First Lesson</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPEAKING TAB -->
+      <div class="app-tab" id="tab-speaking">
+        <h1 class="app-greet">Speaking Practice</h1>
+        <p class="app-greet-sub">Real-time pronunciation feedback, scored against native speech.</p>
+        <div class="speak-grid">
+          <div class="speak-card">
+            <div class="speak-mic">🎙</div>
+            <strong>Free Conversation</strong>
+            <span>Talk about anything — the AI adapts to you.</span>
+            <a class="btn btn-blue" href="speaking.html?mode=free" id="speak-link-free">Start Talking</a>
+          </div>
+          <div class="speak-card">
+            <div class="speak-mic">🍽</div>
+            <strong>Restaurant Roleplay</strong>
+            <span>Practice ordering, paying, and small talk.</span>
+            <a class="btn btn-ghost" href="speaking.html?mode=restaurant" id="speak-link-restaurant">Start Roleplay</a>
+          </div>
+          <div class="speak-card">
+            <div class="speak-mic">✈️</div>
+            <strong>Airport &amp; Travel</strong>
+            <span>Check-in, directions, and customs phrases.</span>
+            <a class="btn btn-ghost" href="speaking.html?mode=travel" id="speak-link-travel">Start Roleplay</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI TUTOR TAB -->
+      <div class="app-tab" id="tab-tutor">
+        <h1 class="app-greet">AI Tutor</h1>
+        <p class="app-greet-sub">Ask anything, in English or Italian.</p>
+        <div class="tutor-panel">
+          <div class="tutor-log" id="tutor-log">
+            <div class="qa-line"><div class="qa-avatar ai qa-avatar-ghost"><svg viewBox="0 0 200 240" width="20" height="20" aria-hidden="true"><path d="M100,18 C58,18 32,50 32,92 L32,168 C32,180 46,184 60,177 C72,186 88,186 100,178 C112,186 128,186 140,177 C154,184 168,180 168,168 L168,92 C168,50 142,18 100,18 Z" fill="white"/><circle cx="78" cy="97" r="9" fill="#0071E3"/><circle cx="122" cy="97" r="9" fill="#0071E3"/></svg></div><div class="qa-bubble" id="tutor-opener">Ciao! I'm your AI tutor — ask me anything, or just say hello to get started.</div></div>
+          </div>
+          <form class="tutor-input-row" onsubmit="sendTutorMessage(event)">
+            <input class="field-input" id="tutor-input" type="text" placeholder="Type a message in Italian or English…">
+            <button type="submit" class="btn btn-blue">Send</button>
+          </form>
+          <a class="tutor-voice-link" href="speaking.html?mode=free" id="speak-link-tutor">🎙 Prefer to talk it out? Try voice practice →</a>
+        </div>
+      </div>
+
+      <!-- PROGRESS TAB -->
+      <div class="app-tab" id="tab-progress">
+        <h1 class="app-greet">Your Progress</h1>
+        <p class="app-greet-sub">Last 7 days</p>
+        <div class="panel">
+          <div class="bar-chart" id="progress-bar-chart"></div>
+          <p style="font-size:13px;color:var(--ink-60);text-align:center;margin-top:16px;" id="progress-empty-note">No activity yet this week — complete a lesson to see it here.</p>
+        </div>
+        <div class="kpi-row" style="margin-top:24px;">
+          <div class="kpi"><div class="lbl">Pronunciation</div><div class="val" id="prog-kpi-pronunciation">—</div></div>
+          <div class="kpi"><div class="lbl">Grammar Accuracy</div><div class="val" id="prog-kpi-grammar">—</div></div>
+          <div class="kpi"><div class="lbl">Words Learned</div><div class="val" id="prog-kpi-words">0</div></div>
+          <div class="kpi"><div class="lbl">Lessons Completed</div><div class="val" id="prog-kpi-lessons">0</div></div>
+        </div>
+        <div class="kpi-row" style="margin-top:16px;">
+          <div class="kpi"><div class="lbl">Total XP</div><div class="val" id="prog-kpi-xp">0</div></div>
+          <div class="kpi"><div class="lbl">Current Streak</div><div class="val" id="prog-kpi-streak">0 days</div></div>
+          <div class="kpi"><div class="lbl">Words Mastered</div><div class="val" id="prog-kpi-mastered">0</div></div>
+          <div class="kpi"><div class="lbl">Lessons Redone</div><div class="val" id="prog-kpi-redone">0</div></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div class="app-tab" id="tab-settings">
+        <h1 class="app-greet">Settings</h1>
+        <p class="app-greet-sub">Manage your profile and preferences.</p>
+        <div class="panel" style="max-width:520px;">
+          <label class="field-label">Display name</label>
+          <input class="field-input" type="text" id="settings-name" value="Maya">
+          <label class="field-label">Learning language</label>
+          <select class="field-input" id="settings-lang" onchange="switchLanguage(this.value)">
+            <option value="Italian">🇮🇹 Italian</option>
+            <option value="French">🇫🇷 French</option>
+          </select>
+          <p style="font-size:12.5px;color:var(--ink-60);margin:4px 0 0;">Italian and French have fully separate units, lessons, vocabulary and progress — switching just changes which course you're viewing.</p>
+          <label class="check-label" style="margin:14px 0;"><input type="checkbox" checked> Daily reminder notifications</label>
+          <br>
+          <label class="check-label" style="margin-bottom:18px;"><input type="checkbox" checked> Weekly progress email</label>
+          <button class="btn btn-blue" onclick="saveSettings()">Save Changes</button>
+        </div>
+        <div class="panel" style="max-width:520px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <strong style="font-size:14px;">Not sure your level is right?</strong>
+            <p style="font-size:12.5px;color:var(--ink-60);margin-top:2px;">Retake the placement test anytime.</p>
+          </div>
+          <a class="btn btn-ghost" id="retake-level-link" href="level-test.html">Retake Test</a>
+        </div>
+        <div class="panel" style="max-width:520px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <strong style="font-size:14px;">Start over</strong>
+            <p style="font-size:12.5px;color:var(--ink-60);margin-top:2px;">Clears all XP, streak, lessons, and vocabulary on this device.</p>
+          </div>
+          <button class="btn btn-ghost" onclick="handleResetProgress()">Reset Progress</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="lesson-modal-backdrop hidden" id="lesson-modal-backdrop">
+    <div class="lesson-modal">
+      <button class="lesson-modal-close" id="lesson-modal-close" aria-label="Close">✕</button>
+      <div id="lesson-modal-body"><!-- injected by openLesson() --></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setAppTab(tab){
+    document.querySelectorAll('.app-nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.app-tab').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+    document.querySelector('.app-main').scrollTo({top:0,behavior:'smooth'});
+    history.replaceState(null, '', '#' + tab);
+  }
+
+  function saveSettings(){
+    const name = document.getElementById('settings-name').value.trim() || 'Maya';
+    document.getElementById('greet-name').textContent = name;
+    document.getElementById('topbar-name').textContent = name;
+    appState.name = name;
+    if(window.LinguaCloud && window.LinguaCloud.user()) window.LinguaCloud.saveProfile({ name }).catch(console.error);
+  }
+
+  /* ================= AI TUTOR CHAT (OpenAI) ================= */
+  let tutorHistory = []; // {role, content} pairs sent to the API for context
+  let tutorBusy = false;
+
+  function tutorSystemPrompt(){
+    return `You are Lingua Tutor, a warm, encouraging ${appState.language} language tutor inside a language-learning app. The learner's estimated level is ${appState.level} (CEFR). Reply mostly in ${appState.language}, but explain corrections briefly in English so a learner can follow. Keep replies short (2-4 sentences). When the learner makes a mistake, gently correct it and explain why. Ask a natural follow-up question to keep the conversation going.`;
+  }
+
+  const GHOST_MINI_ICON = `<svg viewBox="0 0 200 240" width="20" height="20" aria-hidden="true">
+    <path d="M100,18 C58,18 32,50 32,92 L32,168 C32,180 46,184 60,177 C72,186 88,186 100,178 C112,186 128,186 140,177 C154,184 168,180 168,168 L168,92 C168,50 142,18 100,18 Z" fill="white"/>
+    <circle cx="78" cy="97" r="9" fill="#0071E3"/>
+    <circle cx="122" cy="97" r="9" fill="#0071E3"/>
+  </svg>`;
+
+  function appendChatLine(container, speaker, text){
+    const line = document.createElement('div');
+    line.className = 'qa-line';
+    const avatarClass = speaker === 'ai' ? 'ai qa-avatar-ghost' : 'user';
+    const avatarLabel = speaker === 'ai' ? GHOST_MINI_ICON : appState.name.charAt(0).toUpperCase();
+    line.innerHTML = `<div class="qa-avatar ${avatarClass}">${avatarLabel}</div><div class="qa-bubble"></div>`;
+    line.querySelector('.qa-bubble').textContent = text;
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
+    return line;
+  }
+
+  function appendTyping(container){
+    const line = document.createElement('div');
+    line.className = 'qa-line';
+    line.id = 'typing-line';
+    line.innerHTML = `<div class="qa-avatar ai qa-avatar-ghost">${GHOST_MINI_ICON}</div><div class="qa-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
+    return line;
+  }
+
+  async function sendTutorMessage(event){
+    event.preventDefault();
+    if(tutorBusy) return;
+    const input = document.getElementById('tutor-input');
+    const text = input.value.trim();
+    if(!text) return;
+    const log = document.getElementById('tutor-log');
+
+    appendChatLine(log, 'user', text);
+    tutorHistory.push({ role: 'user', content: text });
+    input.value = '';
+
+    if(!hasApiKey()){
+      const notice = document.createElement('div');
+      notice.className = 'qa-line';
+      log.appendChild(notice);
+      renderApiNotice(notice, 'AI Tutor needs an OpenAI API key to chat for real.');
+      log.scrollTop = log.scrollHeight;
+      return;
+    }
+
+    tutorBusy = true;
+    const typingLine = appendTyping(log);
+    try{
+      const reply = await openaiChat([
+        { role: 'system', content: tutorSystemPrompt() },
+        ...tutorHistory
+      ]);
+      typingLine.remove();
+      appendChatLine(log, 'ai', reply);
+      tutorHistory.push({ role: 'assistant', content: reply });
+    }catch(err){
+      console.error(err);
+      typingLine.remove();
+      const line = document.createElement('div');
+      line.className = 'error-line';
+      line.textContent = 'Something went wrong reaching the AI tutor. Check your API key in config.js and try again.';
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }finally{
+      tutorBusy = false;
+    }
+  }
+
+  /* ================= CURRICULUM (Units & Lessons) =================
+     Italian and French each get their own, completely separate course:
+     four Units spanning A1 → B2, each with 10 lessons followed by a
+     review. A learner must clear lesson N before lesson N+1 unlocks,
+     and must clear the review before the next Unit unlocks — but
+     anyone who already knows a lesson can skip it instead of grinding
+     through it. A learner's placement-test level auto-skips every
+     Unit below their level the first time they land on the dashboard,
+     so a B1 learner starts in the B1 unit, not back at "Say Hello". */
+  function mkLesson(unitId, num, row, isReview){
+    const [title, type, icon, minutes, xp, words, scenarioBrief] = row;
+    return {
+      id: `${unitId}-l${num}`, unitId, lessonNum: num, title, type, icon, minutes, xp,
+      words: words || [], scenarioBrief: scenarioBrief || null, isReview: !!isReview
+    };
+  }
+  function mkUnit(id, title, theme, level, rows, reviewRow){
+    const lessons = rows.map((r,i) => mkLesson(id, i+1, r));
+    const review = mkLesson(id, rows.length+1, reviewRow, true);
+    return { id, title, theme, level, lessons, review, totalLessons: rows.length + 1 };
+  }
+
+  const CEFR_ORDER = ['A1','A2','B1','B2','C1','C2'];
+
+  const CURRICULUM = {
+    Italian: [
+      mkUnit('it-u1', 'Italian Basics', 'A handful of words and grammar patterns, introduced a little at a time and reused in every lesson that follows', 'A1', [
+        ['Say Hello','Vocabulary','👋',15,25,[['ciao','hello'],['buongiorno','good morning'],['buonasera','good evening'],['arrivederci','goodbye'],['a presto','see you soon']], null],
+        ['Introduce Yourself','Vocabulary','🙋',15,25,[['mi chiamo...','my name is...'],['come ti chiami?','what is your name?'],['piacere','nice to meet you'],['ciao','hello'],['e tu?','and you?']], null],
+        ['I Am, You Are — Essere','Grammar','📘',17,28,[['sono','I am'],['sei','you are'],['è','he/she/it is'],['siamo','we are'],['mi chiamo...','my name is...']], null],
+        ['Numbers 1–10','Vocabulary','🔢',15,25,[['uno','one'],['tre','three'],['cinque','five'],['otto','eight'],['dieci','ten']], null],
+        ['How Old Are You? — Avere','Grammar','📗',17,28,[['ho','I have'],['hai','you have'],['quanti anni hai?','how old are you?'],['dieci','ten'],['ha','he/she has']], null],
+        ['Meeting Someone New','Speaking','🤝',24,38,[['piacere','nice to meet you'],['sono...','I am...'],['ho... anni','I am... years old'],['ciao','hello'],['come ti chiami?','what is your name?']], 'meeting a new neighbor outside your apartment building, introducing yourself, and mentioning your age'],
+        ['Family & People','Vocabulary','👪',16,26,[['la famiglia','family'],['mio fratello','my brother'],['mia sorella','my sister'],['i miei genitori','my parents'],['ho...','I have...']], null],
+        ['Asking Questions','Grammar','❓',17,28,[['chi?','who?'],['cosa?','what?'],['dove?','where?'],['perché?','why?'],['come?','how?']], null],
+        ['Ordering at a Café','Speaking','☕',24,38,[['per favore','please'],['vorrei...','I would like...'],['quanto costa?','how much does it cost?'],['grazie mille','thanks a lot'],['ecco','here you go']], 'ordering a coffee and a pastry from a barista, asking the price, and paying — try using a number when you order'],
+        ['Listening Practice','Listening','🎧',18,30,[], null]
+      ], ['Unit 1 Review','Mixed','🏁',32,55,[['ciao','hello'],['mi chiamo...','my name is...'],['sono...','I am...'],['ho...','I have...'],['la famiglia','family'],['chi?','who?'],['vorrei...','I would like...'],['che ore sono?','what time is it?'],['dieci','ten']], 'a longer conversation meeting someone new — introduce yourself, mention your age and a family member, order a coffee, and ask what time it is']),
+      mkUnit('it-u2', 'Daily Life & Connecting', 'Builds on Unit 1 — the same core words and grammar patterns show up again as you learn to talk about your day', 'A2', [
+        ['Daily Routines','Vocabulary','⏰',15,25,[['mi sveglio','I wake up'],['faccio colazione','I have breakfast'],['vado al lavoro','I go to work'],['vado a dormire','I go to sleep'],['di mattina','in the morning']], null],
+        ['Talking About Your Day','Grammar','📗',17,28,[['parlo','I speak'],['mangio','I eat'],['lavoro','I work'],['vado al lavoro','I go to work'],['studio','I study']], null],
+        ['Hobbies & Likes','Vocabulary','⚽',15,25,[['mi piace...','I like...'],['leggere','to read'],['fare sport','to play sports'],['parlo','I speak'],['guardare la TV','to watch TV']], null],
+        ['Making Plans with a Friend','Speaking','📱',24,38,[['ci vediamo...?','shall we meet...?'],['a che ora?','at what time?'],['mi piace...','I like...'],["non vedo l'ora",'I can\'t wait'],['va bene per te?','does that work for you?']], 'texting back and forth with a friend to arrange meeting up, mentioning something you like doing together'],
+        ['Directions & Places','Vocabulary','🗺️',15,25,[['a destra','to the right'],['a sinistra','to the left'],['sempre dritto','straight ahead'],['vicino a','near']], null],
+        ['Asking for Directions','Speaking','🧭',24,38,[['dove?','where?'],['a destra','to the right'],['sempre dritto','straight ahead'],['vicino a','near'],['scusi','excuse me']], 'stopping a stranger on the street to ask where the train station is, and understanding their directions'],
+        ['Food & Restaurant Words','Vocabulary','🍝',16,26,[['il conto, per favore','the bill, please'],['è delizioso','it is delicious'],['sono vegetariano/a','I am vegetarian'],['un tavolo per due','a table for two']], null],
+        ['At the Restaurant','Speaking','🍽️',24,38,[['vorrei...','I would like...'],['il conto, per favore','the bill, please'],['è delizioso','it is delicious'],['un tavolo per due','a table for two'],['sono vegetariano/a','I am vegetarian']], 'arriving at a restaurant, being seated at a table for two, ordering a full meal, and asking for the bill'],
+        ['Talking About the Past','Grammar','📙',18,30,[['ho mangiato','I ate'],['sono andato/a','I went'],['ha fatto','he/she did'],['ho...','I have...'],['sono...','I am...']], null],
+        ['Listening Practice','Listening','🎧',18,30,[], null]
+      ], ['Unit 2 Review','Mixed','🏆',32,55,[['faccio colazione','I have breakfast'],['mi piace...','I like...'],['dove?','where?'],['vorrei...','I would like...'],['fa caldo','it is hot'],['ho mangiato','I ate'],['sono andato/a','I went'],['il conto, per favore','the bill, please']], 'retelling your day — your morning routine, the weather, a meal out where you ordered something, and plans you made with a friend, using the past tense where you can']),
+      mkUnit('it-u3', 'Everyday Fluency', 'Opinions, plans, and advice — richer grammar for conversations that go beyond the basics', 'B1', [
+        ['Giving Opinions','Vocabulary','💭',16,26,[['secondo me','in my opinion'],['penso che...','I think that...'],['sono d\'accordo','I agree'],['non sono d\'accordo','I disagree']], null],
+        ['The Future Tense','Grammar','🔮',18,30,[['andrò','I will go'],['farò','I will do'],['sarà','it will be'],['avrò','I will have'],['penso che...','I think that...']], null],
+        ['Making Comparisons','Grammar','⚖️',17,28,[['più... di','more... than'],['meno... di','less... than'],['il migliore','the best'],['come','like/as']], null],
+        ['Talking About Plans','Speaking','📅',24,38,[['andrò','I will go'],['secondo me','in my opinion'],['sarà','it will be'],['che ne pensi?','what do you think?']], 'discussing weekend plans with a friend, sharing opinions about where to go and what the weather will be like'],
+        ['Connectors & Opinions','Vocabulary','🔗',16,26,[['però','but/however'],['quindi','so/therefore'],['infatti','in fact'],['allora','so/then']], null],
+        ['Describing a Problem','Speaking','🏨',24,38,[['il problema è che...','the problem is that...'],['purtroppo','unfortunately'],['però','but/however'],['potrebbe aiutarmi?','could you help me?']], 'explaining to a hotel receptionist that your reservation has gone missing, and asking them to help fix it'],
+        ['The Conditional Mood','Grammar','🌀',18,30,[['potrei','I could'],['dovrei','I should'],['mi piacerebbe','I would like'],['vorrei...','I would like...']], null],
+        ['Giving Advice','Vocabulary','🧭',16,26,[['dovresti','you should'],['ti consiglio di...','I recommend that you...'],['è meglio','it is better'],['al posto tuo','in your place']], null],
+        ['Asking For and Giving Advice','Speaking','🗣️',24,38,[['dovresti','you should'],['ti consiglio di...','I recommend that you...'],['secondo me','in my opinion'],['che faresti?','what would you do?']], 'telling a friend about a problem at work and asking what they would do, then giving them advice about a problem of their own'],
+        ['Listening Practice','Listening','🎧',20,32,[], null]
+      ], ['Unit 3 Review','Mixed','🏁',34,58,[['secondo me','in my opinion'],['penso che...','I think that...'],['andrò','I will go'],['più... di','more... than'],['però','but/however'],['dovrei','I should'],['ti consiglio di...','I recommend that you...'],['potrebbe aiutarmi?','could you help me?']], 'a conversation where you share an opinion, talk about future plans, describe a problem you ran into, and both give and receive advice']),
+      mkUnit('it-u4', 'Expressing Yourself', 'Subjunctive, hypotheticals, and nuance — for debating ideas and telling richer stories', 'B2', [
+        ['The Subjunctive — Doubt & Emotion','Grammar','🎭',20,32,[['che sia','that it is/may be'],['che tu abbia','that you have/may have'],['è possibile che...','it is possible that...'],['sono felice che...','I am happy that...']], null],
+        ['Expressing Hopes & Wishes','Vocabulary','🌠',16,26,[['spero che...','I hope that...'],['mi auguro che...','I wish that...'],['vorrei che...','I wish that... (+subjunctive)'],['magari!','if only!']], null],
+        ['Hypotheticals — Se Clauses','Grammar','🔀',20,32,[['se avessi...','if I had...'],['se fossi...','if I were...'],['sarebbe','it would be'],['farei','I would do']], null],
+        ['Debating a Topic','Speaking','🗳️',26,40,[['da un lato...','on one hand...'],['dall\'altro lato...','on the other hand...'],['non sono del tutto d\'accordo','I don\'t entirely agree'],['dipende','it depends']], 'debating with a friend whether it\'s better to live in a big city or a small town, weighing both sides'],
+        ['Nuanced Opinions','Vocabulary','🧩',16,26,[['non è detto che...','it\'s not necessarily true that...'],['in un certo senso','in a certain sense'],['a mio avviso','in my view'],['tutto sommato','all things considered']], null],
+        ['Talking About Hypothetical Situations','Speaking','🌌',26,40,[['se avessi...','if I had...'],['farei','I would do'],['sarebbe','it would be'],['cosa faresti al mio posto?','what would you do in my place?']], 'a "what would you do if..." conversation about a big hypothetical life decision, like moving abroad'],
+        ['Reported Speech','Grammar','💬',18,30,[['ha detto che...','he/she said that...'],['mi ha chiesto se...','he/she asked me if...'],['aveva detto che...','he/she had said that...']], null],
+        ['Narrating a Story','Speaking','📖',26,40,[['un giorno...','one day...'],['a un certo punto...','at a certain point...'],['alla fine...','in the end...'],['non riuscivo a credere che...','I couldn\'t believe that...']], 'telling a friend a short, slightly dramatic personal story about something that happened to you recently'],
+        ['Idioms & Expressions','Vocabulary','🎨',16,26,[['in bocca al lupo','good luck (lit. "in the wolf\'s mouth")'],['non vedo l\'ora','I can\'t wait'],['costare un occhio della testa','to cost an arm and a leg'],['prendere in giro','to tease/pull someone\'s leg']], null],
+        ['Listening Practice','Listening','🎧',20,32,[], null]
+      ], ['Unit 4 Review','Mixed','🏁',36,60,[['spero che...','I hope that...'],['se avessi...','if I had...'],['sarebbe','it would be'],['da un lato...','on one hand...'],['dipende','it depends'],['ha detto che...','he/she said that...'],['alla fine...','in the end...'],['in bocca al lupo','good luck']], 'a rich conversation that mixes hopes, hypotheticals, a debated opinion, and a short personal story, told partly in reported speech'])
+    ],
+    French: [
+      mkUnit('fr-u1', 'French Basics', 'A handful of words and grammar patterns, introduced a little at a time and reused in every lesson that follows', 'A1', [
+        ['Say Hello','Vocabulary','👋',15,25,[['bonjour','hello'],['bonsoir','good evening'],['salut','hi (informal)'],['au revoir','goodbye'],['à bientôt','see you soon']], null],
+        ['Introduce Yourself','Vocabulary','🙋',15,25,[["je m'appelle...",'my name is...'],["comment tu t'appelles ?",'what is your name?'],['enchanté(e)','nice to meet you'],['bonjour','hello'],['et toi ?','and you?']], null],
+        ['I Am, You Are — Être','Grammar','📘',17,28,[['je suis','I am'],['tu es','you are'],['il/elle est','he/she is'],['nous sommes','we are'],["je m'appelle...",'my name is...']], null],
+        ['Numbers 1–10','Vocabulary','🔢',15,25,[['un','one'],['trois','three'],['cinq','five'],['huit','eight'],['dix','ten']], null],
+        ['How Old Are You? — Avoir','Grammar','📗',17,28,[["j'ai",'I have'],['tu as','you have'],['quel âge as-tu ?','how old are you?'],['dix','ten'],['il/elle a','he/she has']], null],
+        ['Meeting Someone New','Speaking','🤝',24,38,[['enchanté(e)','nice to meet you'],['je suis...','I am...'],["j'ai... ans",'I am... years old'],['bonjour','hello'],["comment tu t'appelles ?",'what is your name?']], 'meeting a new neighbor outside your apartment building, introducing yourself, and mentioning your age'],
+        ['Family & People','Vocabulary','👪',16,26,[['la famille','family'],['mon frère','my brother'],['ma sœur','my sister'],['mes parents','my parents'],["j'ai...",'I have...']], null],
+        ['Asking Questions','Grammar','❓',17,28,[['qui ?','who?'],['quoi ?','what?'],['où ?','where?'],['pourquoi ?','why?'],['comment ?','how?']], null],
+        ['Ordering at a Café','Speaking','☕',24,38,[["s'il vous plaît",'please'],['je voudrais...','I would like...'],['combien ça coûte ?','how much does it cost?'],['merci beaucoup','thanks a lot'],['voilà','here you go']], 'ordering a coffee and a pastry from a barista, asking the price, and paying — try using a number when you order'],
+        ['Listening Practice','Listening','🎧',18,30,[], null]
+      ], ['Unit 1 Review','Mixed','🏁',32,55,[['bonjour','hello'],["je m'appelle...",'my name is...'],['je suis...','I am...'],["j'ai...",'I have...'],['la famille','family'],['qui ?','who?'],['je voudrais...','I would like...'],['quelle heure est-il ?','what time is it?'],['dix','ten']], 'a longer conversation meeting someone new — introduce yourself, mention your age and a family member, order a coffee, and ask what time it is']),
+      mkUnit('fr-u2', 'Daily Life & Connecting', 'Builds on Unit 1 — the same core words and grammar patterns show up again as you learn to talk about your day', 'A2', [
+        ['Daily Routines','Vocabulary','⏰',15,25,[['je me réveille','I wake up'],['je prends le petit-déjeuner','I have breakfast'],['je vais au travail','I go to work'],['je vais dormir','I go to sleep'],['le matin','in the morning']], null],
+        ['Talking About Your Day','Grammar','📗',17,28,[['je parle','I speak'],['je mange','I eat'],['je travaille','I work'],['je vais au travail','I go to work'],["j'étudie",'I study']], null],
+        ['Hobbies & Likes','Vocabulary','⚽',15,25,[["j'aime...",'I like...'],['lire','to read'],['faire du sport','to play sports'],['je parle','I speak'],['regarder la télé','to watch TV']], null],
+        ['Making Plans with a Friend','Speaking','📱',24,38,[['on se voit... ?','shall we meet...?'],['à quelle heure ?','at what time?'],["j'aime...",'I like...'],["j'ai hâte",'I can\'t wait'],['ça te va ?','does that work for you?']], 'texting back and forth with a friend to arrange meeting up, mentioning something you like doing together'],
+        ['Directions & Places','Vocabulary','🗺️',15,25,[['à droite','to the right'],['à gauche','to the left'],['tout droit','straight ahead'],['près de','near']], null],
+        ['Asking for Directions','Speaking','🧭',24,38,[['où ?','where?'],['à droite','to the right'],['tout droit','straight ahead'],['près de','near'],['excusez-moi','excuse me']], 'stopping a stranger on the street to ask where the train station is, and understanding their directions'],
+        ['Food & Restaurant Words','Vocabulary','🍝',16,26,[["l'addition, s'il vous plaît",'the bill, please'],["c'est délicieux",'it is delicious'],['je suis végétarien(ne)','I am vegetarian'],['une table pour deux','a table for two']], null],
+        ['At the Restaurant','Speaking','🍽️',24,38,[['je voudrais...','I would like...'],["l'addition, s'il vous plaît",'the bill, please'],["c'est délicieux",'it is delicious'],['une table pour deux','a table for two'],['je suis végétarien(ne)','I am vegetarian']], 'arriving at a restaurant, being seated at a table for two, ordering a full meal, and asking for the bill'],
+        ['Talking About the Past','Grammar','📙',18,30,[["j'ai mangé",'I ate'],['je suis allé(e)','I went'],['il/elle a fait','he/she did'],["j'ai...",'I have...'],['je suis...','I am...']], null],
+        ['Listening Practice','Listening','🎧',18,30,[], null]
+      ], ['Unit 2 Review','Mixed','🏆',32,55,[['je prends le petit-déjeuner','I have breakfast'],["j'aime...",'I like...'],['où ?','where?'],['je voudrais...','I would like...'],['il fait chaud','it is hot'],["j'ai mangé",'I ate'],['je suis allé(e)','I went'],["l'addition, s'il vous plaît",'the bill, please']], 'retelling your day — your morning routine, the weather, a meal out where you ordered something, and plans you made with a friend, using the past tense where you can']),
+      mkUnit('fr-u3', 'Everyday Fluency', 'Opinions, plans, and advice — richer grammar for conversations that go beyond the basics', 'B1', [
+        ['Giving Opinions','Vocabulary','💭',16,26,[['selon moi','in my opinion'],['je pense que...','I think that...'],["je suis d'accord",'I agree'],["je ne suis pas d'accord",'I disagree']], null],
+        ['The Future Tense','Grammar','🔮',18,30,[["j'irai",'I will go'],['je ferai','I will do'],['ce sera','it will be'],["j'aurai",'I will have'],['je pense que...','I think that...']], null],
+        ['Making Comparisons','Grammar','⚖️',17,28,[['plus... que','more... than'],['moins... que','less... than'],['le meilleur','the best'],['comme','like/as']], null],
+        ['Talking About Plans','Speaking','📅',24,38,[["j'irai",'I will go'],['selon moi','in my opinion'],['ce sera','it will be'],["qu'en penses-tu ?",'what do you think?']], 'discussing weekend plans with a friend, sharing opinions about where to go and what the weather will be like'],
+        ['Connectors & Opinions','Vocabulary','🔗',16,26,[['mais','but/however'],['donc','so/therefore'],['en effet','in fact'],['alors','so/then']], null],
+        ['Describing a Problem','Speaking','🏨',24,38,[['le problème, c\'est que...','the problem is that...'],['malheureusement','unfortunately'],['mais','but/however'],['pourriez-vous m\'aider ?','could you help me?']], 'explaining to a hotel receptionist that your reservation has gone missing, and asking them to help fix it'],
+        ['The Conditional Mood','Grammar','🌀',18,30,[['je pourrais','I could'],['je devrais','I should'],["j'aimerais",'I would like'],['je voudrais...','I would like...']], null],
+        ['Giving Advice','Vocabulary','🧭',16,26,[['tu devrais','you should'],['je te conseille de...','I recommend that you...'],['il vaut mieux','it is better'],['à ta place','in your place']], null],
+        ['Asking For and Giving Advice','Speaking','🗣️',24,38,[['tu devrais','you should'],['je te conseille de...','I recommend that you...'],['selon moi','in my opinion'],['qu\'est-ce que tu ferais ?','what would you do?']], 'telling a friend about a problem at work and asking what they would do, then giving them advice about a problem of their own'],
+        ['Listening Practice','Listening','🎧',20,32,[], null]
+      ], ['Unit 3 Review','Mixed','🏁',34,58,[['selon moi','in my opinion'],['je pense que...','I think that...'],["j'irai",'I will go'],['plus... que','more... than'],['mais','but/however'],['je devrais','I should'],['je te conseille de...','I recommend that you...'],['pourriez-vous m\'aider ?','could you help me?']], 'a conversation where you share an opinion, talk about future plans, describe a problem you ran into, and both give and receive advice']),
+      mkUnit('fr-u4', 'Expressing Yourself', 'Subjunctive, hypotheticals, and nuance — for debating ideas and telling richer stories', 'B2', [
+        ['The Subjunctive — Doubt & Emotion','Grammar','🎭',20,32,[['que ce soit','that it is/may be'],['que tu aies','that you have/may have'],['il est possible que...','it is possible that...'],['je suis content(e) que...','I am happy that...']], null],
+        ['Expressing Hopes & Wishes','Vocabulary','🌠',16,26,[["j'espère que...",'I hope that...'],['je souhaite que...','I wish that...'],['je voudrais que...','I wish that... (+subjunctive)'],['si seulement !','if only!']], null],
+        ['Hypotheticals — Si Clauses','Grammar','🔀',20,32,[["si j'avais...",'if I had...'],["si j'étais...",'if I were...'],['ce serait','it would be'],['je ferais','I would do']], null],
+        ['Debating a Topic','Speaking','🗳️',26,40,[["d'un côté...",'on one hand...'],["de l'autre côté...",'on the other hand...'],["je ne suis pas tout à fait d'accord",'I don\'t entirely agree'],['ça dépend','it depends']], 'debating with a friend whether it\'s better to live in a big city or a small town, weighing both sides'],
+        ['Nuanced Opinions','Vocabulary','🧩',16,26,[["ce n'est pas dit que...",'it\'s not necessarily true that...'],['dans un certain sens','in a certain sense'],['à mon avis','in my view'],['tout compte fait','all things considered']], null],
+        ['Talking About Hypothetical Situations','Speaking','🌌',26,40,[["si j'avais...",'if I had...'],['je ferais','I would do'],['ce serait','it would be'],['qu\'est-ce que tu ferais à ma place ?','what would you do in my place?']], 'a "what would you do if..." conversation about a big hypothetical life decision, like moving abroad'],
+        ['Reported Speech','Grammar','💬',18,30,[['il/elle a dit que...','he/she said that...'],["il/elle m'a demandé si...",'he/she asked me if...'],['il/elle avait dit que...','he/she had said that...']], null],
+        ['Narrating a Story','Speaking','📖',26,40,[['un jour...','one day...'],['à un moment donné...','at a certain point...'],['finalement...','in the end...'],['je n\'arrivais pas à croire que...','I couldn\'t believe that...']], 'telling a friend a short, slightly dramatic personal story about something that happened to you recently'],
+        ['Idioms & Expressions','Vocabulary','🎨',16,26,[['bonne chance','good luck'],["j'ai hâte",'I can\'t wait'],['coûter les yeux de la tête','to cost an arm and a leg (lit. "the eyes of the head")'],['se moquer de quelqu\'un','to tease/make fun of someone']], null],
+        ['Listening Practice','Listening','🎧',20,32,[], null]
+      ], ['Unit 4 Review','Mixed','🏁',36,60,[["j'espère que...",'I hope that...'],["si j'avais...",'if I had...'],['ce serait','it would be'],["d'un côté...",'on one hand...'],['ça dépend','it depends'],['il/elle a dit que...','he/she said that...'],['finalement...','in the end...'],['bonne chance','good luck']], 'a rich conversation that mixes hopes, hypotheticals, a debated opinion, and a short personal story, told partly in reported speech'])
+    ]
+  };
+
+  function currentUnits(){ return CURRICULUM[appState.language] || CURRICULUM.Italian; }
+
+
+  function allLessonsFlat(units){
+    const out = [];
+    units.forEach(u => { u.lessons.forEach(l => out.push(l)); out.push(u.review); });
+    return out;
+  }
+
+  function findLesson(lessonId){
+    return allLessonsFlat(currentUnits()).find(l => l.id === lessonId) || null;
+  }
+
+  // Also returns the Unit a lesson belongs to — needed for listening
+  // lessons, which draw their topic from the whole unit's vocabulary.
+  function findLessonWithUnit(lessonId){
+    for(const unit of currentUnits()){
+      for(const lesson of unit.lessons){ if(lesson.id === lessonId) return { unit, lesson }; }
+      if(unit.review.id === lessonId) return { unit, lesson: unit.review };
+    }
+    return null;
+  }
+
+  function lessonWordBank(lesson){
+    return (lesson.words || []).map(([w,m]) => ({ word: w, meaning: m }));
+  }
+
+  function shuffleArr(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Generic bilingual café scenario used as the fallback roleplay whenever
+  // there's no API key (or generation fails) — GPT-generated scenarios (see
+  // generateLessonExercises) are tailored per-lesson instead.
+  const FALLBACK_SCENARIO = {
+    Italian: {
+      npc_name: 'the barista', setup_en: 'You walk up to the counter at a small café.',
+      exchanges: [
+        { npc_line: 'Buongiorno! Cosa desidera?', npc_translation: 'Good morning! What would you like?',
+          options: [
+            { text: 'Vorrei un caffè, per favore.', translation: 'I would like a coffee, please.' },
+            { text: 'Non lo so.', translation: "I don't know." },
+            { text: "Dov'è il bagno?", translation: 'Where is the bathroom?' },
+            { text: 'Arrivederci.', translation: 'Goodbye.' }
+          ], correct_index: 0,
+          reaction_correct: 'Subito! (Right away!)', reaction_incorrect: 'Il barista aspetta ancora... (The barista is still waiting for your order.)' },
+        { npc_line: 'Vuole altro?', npc_translation: 'Would you like anything else?',
+          options: [
+            { text: 'No, grazie, è tutto.', translation: "No, thanks, that's all." },
+            { text: 'Sì, un elefante.', translation: 'Yes, an elephant.' },
+            { text: 'Buonanotte.', translation: 'Good night.' },
+            { text: 'Mi chiamo Marco.', translation: 'My name is Marco.' }
+          ], correct_index: 0,
+          reaction_correct: 'Perfetto. (Perfect.)', reaction_incorrect: 'Il barista è un po\' confuso. (The barista looks a bit confused.)' },
+        { npc_line: 'Ecco a lei! Sono due euro.', npc_translation: "Here you go! That's two euros.",
+          options: [
+            { text: 'Grazie mille, ecco a lei.', translation: 'Thanks a lot, here you go.' },
+            { text: 'Che ore sono?', translation: 'What time is it?' },
+            { text: 'Mi dispiace.', translation: "I'm sorry." },
+            { text: 'Come si chiama?', translation: "What's your name?" }
+          ], correct_index: 0,
+          reaction_correct: 'Grazie a lei, buona giornata! (Thank you, have a good day!)', reaction_incorrect: 'Il barista aspetta il pagamento. (The barista is waiting for payment.)' },
+        { npc_line: 'Vuole un tovagliolo?', npc_translation: 'Would you like a napkin?',
+          options: [
+            { text: 'Sì, grazie.', translation: 'Yes, thanks.' },
+            { text: 'Forse domani.', translation: 'Maybe tomorrow.' },
+            { text: 'Non ho fame.', translation: "I'm not hungry." },
+            { text: 'Sono le tre.', translation: "It's three o'clock." }
+          ], correct_index: 0,
+          reaction_correct: 'Ecco a lei! (Here you go!)', reaction_incorrect: 'Il barista aspetta una risposta. (The barista is waiting for a reply.)' }
+      ]
+    },
+    French: {
+      npc_name: 'the bartender', setup_en: 'You walk up to the counter at a small café.',
+      exchanges: [
+        { npc_line: 'Bonjour ! Vous désirez ?', npc_translation: 'Good morning! What would you like?',
+          options: [
+            { text: 'Je voudrais un café, s\'il vous plaît.', translation: 'I would like a coffee, please.' },
+            { text: 'Je ne sais pas.', translation: "I don't know." },
+            { text: 'Où sont les toilettes ?', translation: 'Where is the bathroom?' },
+            { text: 'Au revoir.', translation: 'Goodbye.' }
+          ], correct_index: 0,
+          reaction_correct: 'Tout de suite ! (Right away!)', reaction_incorrect: 'Le serveur attend toujours... (The bartender is still waiting for your order.)' },
+        { npc_line: 'Autre chose ?', npc_translation: 'Anything else?',
+          options: [
+            { text: "Non merci, c'est tout.", translation: "No thanks, that's all." },
+            { text: 'Oui, un éléphant.', translation: 'Yes, an elephant.' },
+            { text: 'Bonne nuit.', translation: 'Good night.' },
+            { text: "Je m'appelle Marc.", translation: 'My name is Marc.' }
+          ], correct_index: 0,
+          reaction_correct: 'Parfait. (Perfect.)', reaction_incorrect: 'Le serveur a l\'air un peu confus. (The bartender looks a bit confused.)' },
+        { npc_line: 'Voilà ! Ça fait deux euros.', npc_translation: "Here you go! That's two euros.",
+          options: [
+            { text: 'Merci beaucoup, voilà.', translation: 'Thanks a lot, here you go.' },
+            { text: "Quelle heure est-il ?", translation: 'What time is it?' },
+            { text: 'Je suis désolé.', translation: "I'm sorry." },
+            { text: 'Comment vous appelez-vous ?', translation: "What's your name?" }
+          ], correct_index: 0,
+          reaction_correct: 'Merci à vous, bonne journée ! (Thank you, have a good day!)', reaction_incorrect: 'Le serveur attend le paiement. (The bartender is waiting for payment.)' },
+        { npc_line: 'Vous voulez une serviette ?', npc_translation: 'Would you like a napkin?',
+          options: [
+            { text: 'Oui, merci.', translation: 'Yes, thanks.' },
+            { text: 'Peut-être demain.', translation: 'Maybe tomorrow.' },
+            { text: "Je n'ai pas faim.", translation: "I'm not hungry." },
+            { text: 'Il est trois heures.', translation: "It's three o'clock." }
+          ], correct_index: 0,
+          reaction_correct: 'Voilà ! (Here you go!)', reaction_incorrect: 'Le serveur attend une réponse. (The waiter is waiting for a reply.)' }
+      ]
+    }
+  };
+
+  function scenarioToSteps(scenario, setupText){
+    return scenario.exchanges.map((ex, i) => ({
+      type: 'scenario',
+      setup: i === 0 ? setupText : null,
+      npc_name: scenario.npc_name,
+      npc_line: ex.npc_line,
+      npc_translation: ex.npc_translation,
+      options: ex.options,
+      correct_index: ex.correct_index,
+      reaction_correct: ex.reaction_correct,
+      reaction_incorrect: ex.reaction_incorrect
+    }));
+  }
+
+  // The final "now you try" step for any lesson built around a scenario —
+  // a real, open-ended chat turn (not multiple choice) graded live by
+  // OpenAI when a key is configured, so the chat/speak skills a lesson is
+  // teaching are practiced inside the lesson flow itself, not off in a
+  // disconnected page.
+  function chatStepFor(lesson){
+    return {
+      type: 'chat',
+      prompt: `Now you try, in your own words (in ${appState.language}) — ${lesson.scenarioBrief}.`,
+      hint: 'A sentence or two is plenty. There\'s no single right answer — just give it a go.'
+    };
+  }
+
+  // A couple of short "translate this into {language}" production steps,
+  // drawn straight from the lesson's own word bank — no extra authored
+  // content needed. These are graded as real free text (not multiple
+  // choice), with AI feedback that names whether a slip was a spelling
+  // typo or a grammar/form issue and shows how to fix it, rather than
+  // just marking it wrong.
+  function buildFillSteps(lesson, count){
+    const bank = lessonWordBank(lesson);
+    if(bank.length < 2) return [];
+    const picks = shuffleArr(bank).slice(0, Math.min(count, bank.length));
+    return picks.map(({ word, meaning }) => ({ type: 'fill', promptMeaning: meaning, correctAnswer: word }));
+  }
+
+  // Shared tail-assembly so the fallback and AI-generated paths build the
+  // same step shape: multiple choice, then a couple of production (fill)
+  // steps, then — for scenario lessons — the roleplay and a closing open
+  // chat turn.
+  function assembleExerciseSteps(lesson, mcSteps, scenarioSteps){
+    const fillSteps = buildFillSteps(lesson, 2);
+    const tail = lesson.scenarioBrief ? [...(scenarioSteps || []), chatStepFor(lesson)] : [];
+    return [...mcSteps, ...fillSteps, ...tail];
+  }
+
+  // Builds a mixed vocabulary + scenario exercise set straight from a
+  // lesson's own word bank and a generic roleplay template — used whenever
+  // there's no API key, or a live generation call fails.
+  function buildFallbackExercises(lesson){
+    const bank = lessonWordBank(lesson);
+    const mcTarget = lesson.isReview ? 8 : (lesson.scenarioBrief ? 4 : 7);
+    let mcSteps;
+    if(bank.length < 2){
+      mcSteps = [
+        { type: 'mc', question: `Ready to review "${lesson.title}"?`, options: ["Yes, let's go", 'Skip for now', 'Not sure', 'Ask me later'], correct_index: 0 },
+        { type: 'mc', question: `"${lesson.title}" is mainly a ${lesson.type.toLowerCase()} lesson — true or false?`, options: ['True', 'False', 'Maybe', 'No idea'], correct_index: 0 }
+      ];
+    } else {
+      const allMeanings = bank.map(b => b.meaning);
+      const pool = bank.length >= mcTarget ? bank : shuffleArr(bank.concat(bank).concat(bank)).slice(0, mcTarget);
+      mcSteps = shuffleArr(pool).slice(0, mcTarget).map(({word, meaning}) => {
+        const distractors = shuffleArr(allMeanings.filter(m => m !== meaning)).slice(0, 3);
+        while(distractors.length < 3) distractors.push('None of these');
+        const options = shuffleArr([meaning, ...distractors]);
+        return { type: 'mc', question: `What does "${word}" mean?`, options, correct_index: options.indexOf(meaning) };
+      });
+    }
+
+    if(!lesson.scenarioBrief) return assembleExerciseSteps(lesson, mcSteps, null);
+
+    const scenario = FALLBACK_SCENARIO[appState.language] || FALLBACK_SCENARIO.Italian;
+    const setupText = `Scenario: ${lesson.scenarioBrief.charAt(0).toUpperCase() + lesson.scenarioBrief.slice(1)}.`;
+    return assembleExerciseSteps(lesson, mcSteps, scenarioToSteps(scenario, setupText));
+  }
+
+  async function generateLessonExercises(lesson){
+    const bank = lessonWordBank(lesson);
+    const wordHint = bank.length ? `Focus vocabulary for the multiple-choice part: ${bank.map(b => `${b.word} (${b.meaning})`).join(', ')}.` : '';
+    const mcCount = lesson.isReview ? 8 : (lesson.scenarioBrief ? 4 : 7);
+
+    const schemaNote = lesson.scenarioBrief
+      ? `Return strict JSON only: {"mc":[{"question":"...","options":["...","...","...","..."],"correct_index":0}, ... exactly ${mcCount} items], "scenario":{"npc_name":"...", "setup_en":"one sentence in English describing the situation", "exchanges":[{"npc_line":"... in ${appState.language}","npc_translation":"English translation","options":[{"text":"... in ${appState.language}","translation":"English translation"}, ... exactly 4 items],"correct_index":0,"reaction_correct":"a short in-character reply in ${appState.language} plus English translation in parentheses","reaction_incorrect":"a short, gentle in-character reply in ${appState.language} plus English translation in parentheses, that does NOT scold the learner"}, ... exactly 4 items]}}`
+      : `Return strict JSON only: {"mc":[{"question":"...","options":["...","...","...","..."],"correct_index":0}, ... exactly ${mcCount} items]}`;
+
+    const scenarioNote = lesson.scenarioBrief
+      ? ` Also write a short roleplay scenario: ${lesson.scenarioBrief}. Write it as 4 back-and-forth exchanges with an NPC character. CRITICAL: every line of dialogue in ${appState.language} must have its English translation right there too (never present foreign text with zero translation) — a learner who is NOT fluent yet needs to understand every line to follow along.`
+      : '';
+
+    const reviewNote = lesson.isReview ? ' This is a UNIT REVIEW, so mix in vocabulary and grammar from across the whole unit, not just one narrow topic — make it a bit more challenging than a normal lesson.' : '';
+
+    const reply = await openaiChat([
+      { role: 'system', content: `You write short, learner-friendly language exercises for a CEFR ${appState.level} student learning ${appState.language}, who is NOT yet fluent. Generate ${mcCount} multiple-choice vocabulary/grammar questions on the topic "${lesson.title}" (a ${lesson.type} lesson).${reviewNote} ${wordHint} CRITICAL RULE ABOUT TRANSLATIONS: never put the English translation of the exact word/phrase/sentence being tested anywhere in the question stem — that hands the learner the answer before they even look at the options. This applies especially to "what does X mean?" / "what does X mean in English?" style questions: the stem must show ONLY the ${appState.language} text (e.g. "What does \"ciao, mi chiamo Marco\" mean?"), with zero English gloss of it anywhere in the stem — the four options are where the possible English meanings go, exactly once each, and only one is correct. Translations in a stem are only okay for UNRELATED framing text that isn't itself the thing being tested (e.g. instructions like "Complete this sentence:" or a short scene-setting clause the learner isn't being quizzed on). Likewise, if the ANSWER OPTIONS themselves are what's being tested for correctness (e.g. picking the right ${appState.language} phrase or verb form), do NOT translate those options — that would give away the answer the same way.${scenarioNote} ${schemaNote}` },
+      { role: 'user', content: `Generate the exercise set now.` }
+    ], { json: true, temperature: 0.6 });
+
+    const parsed = JSON.parse(reply);
+    if(!parsed || !Array.isArray(parsed.mc) || parsed.mc.length !== mcCount){
+      throw new Error('Malformed exercise set');
+    }
+    parsed.mc.forEach(ex => {
+      if(typeof ex.question !== 'string' || !Array.isArray(ex.options) || ex.options.length !== 4 || !Number.isInteger(ex.correct_index)){
+        throw new Error('Malformed mc item');
+      }
+    });
+    const mcSteps = parsed.mc.map(ex => ({ type: 'mc', ...ex }));
+
+    if(!lesson.scenarioBrief) return assembleExerciseSteps(lesson, mcSteps, null);
+
+    const sc = parsed.scenario;
+    if(!sc || !Array.isArray(sc.exchanges) || sc.exchanges.length !== 4){
+      throw new Error('Malformed scenario');
+    }
+    sc.exchanges.forEach(ex => {
+      if(typeof ex.npc_line !== 'string' || !Array.isArray(ex.options) || ex.options.length !== 4 || !Number.isInteger(ex.correct_index)){
+        throw new Error('Malformed scenario exchange');
+      }
+    });
+    const scenarioSteps = scenarioToSteps(sc, sc.setup_en || `Scenario: ${lesson.scenarioBrief}.`);
+    return assembleExerciseSteps(lesson, mcSteps, scenarioSteps);
+  }
+
+  /* ================= LISTENING EXERCISES ================= */
+  // Short listen-and-transcribe items, independent of the AI Tutor chat —
+  // each is followed by a real open-ended chat turn responding to what was
+  // heard (reusing the same chat step/grading machinery as scenario
+  // lessons). With no API key there's no text-to-speech available, so the
+  // fallback degrades to a "read it, then recall it from memory" exercise
+  // instead of true listening — still real practice, just not audio.
+  const FALLBACK_LISTENING = {
+    Italian: {
+      'it-u1': [
+        { text: 'Ciao! Mi chiamo Giulia. Come ti chiami?', translation: "Hi! My name is Giulia. What's your name?", follow_up: 'Tell Giulia your name, in Italian.' },
+        { text: 'Ho ventidue anni. Quanti anni hai?', translation: 'I am twenty-two years old. How old are you?', follow_up: 'Tell them how old you are, in Italian.' },
+        { text: 'Vorrei un caffè, per favore.', translation: 'I would like a coffee, please.', follow_up: "Imagine you're the barista — how would you reply, in Italian?" }
+      ],
+      'it-u2': [
+        { text: 'Mi sveglio alle sette e faccio colazione.', translation: 'I wake up at seven and have breakfast.', follow_up: 'Describe one part of your own morning routine, in Italian.' },
+        { text: 'Mi piace leggere e fare sport nel tempo libero.', translation: 'I like to read and play sports in my free time.', follow_up: 'Say what you like to do in your free time, in Italian.' },
+        { text: 'Il conto, per favore. È stato delizioso!', translation: 'The bill, please. It was delicious!', follow_up: 'How would the waiter likely respond? Answer in Italian.' }
+      ],
+      'it-u3': [
+        { text: 'Secondo me, dovresti parlare con il tuo capo del problema.', translation: 'In my opinion, you should talk to your boss about the problem.', follow_up: 'Do you agree? Say why or why not, in Italian.' },
+        { text: 'Il weekend prossimo andrò al mare con alcuni amici.', translation: 'Next weekend I will go to the beach with some friends.', follow_up: 'Ask them a follow-up question about their plans, in Italian.' },
+        { text: 'Mi piacerebbe viaggiare di più, ma non ho molto tempo libero.', translation: "I would like to travel more, but I don't have much free time.", follow_up: "Share something you'd like to do but don't have time for, in Italian." }
+      ],
+      'it-u4': [
+        { text: 'Spero che tu possa venire alla festa sabato sera.', translation: 'I hope you can come to the party Saturday night.', follow_up: 'Reply saying whether you can come, in Italian.' },
+        { text: 'Se avessi più soldi, viaggerei per il mondo intero.', translation: 'If I had more money, I would travel the whole world.', follow_up: 'Say what you would do if you had more money, in Italian.' },
+        { text: 'Mi ha detto che sarebbe arrivato in ritardo.', translation: 'He/she told me that he/she would arrive late.', follow_up: 'Ask a follow-up question about why they will be late, in Italian.' }
+      ]
+    },
+    French: {
+      'fr-u1': [
+        { text: "Bonjour ! Je m'appelle Claire. Comment tu t'appelles ?", translation: "Hello! My name is Claire. What's your name?", follow_up: 'Tell Claire your name, in French.' },
+        { text: "J'ai vingt-deux ans. Quel âge as-tu ?", translation: 'I am twenty-two years old. How old are you?', follow_up: 'Tell them how old you are, in French.' },
+        { text: "Je voudrais un café, s'il vous plaît.", translation: 'I would like a coffee, please.', follow_up: "Imagine you're the barista — how would you reply, in French?" }
+      ],
+      'fr-u2': [
+        { text: 'Je me réveille à sept heures et je prends le petit-déjeuner.', translation: 'I wake up at seven and have breakfast.', follow_up: 'Describe one part of your own morning routine, in French.' },
+        { text: "J'aime lire et faire du sport pendant mon temps libre.", translation: 'I like to read and play sports in my free time.', follow_up: 'Say what you like to do in your free time, in French.' },
+        { text: "L'addition, s'il vous plaît. C'était délicieux !", translation: 'The bill, please. It was delicious!', follow_up: 'How would the waiter likely respond? Answer in French.' }
+      ],
+      'fr-u3': [
+        { text: 'Selon moi, tu devrais parler à ton patron du problème.', translation: 'In my opinion, you should talk to your boss about the problem.', follow_up: 'Do you agree? Say why or why not, in French.' },
+        { text: 'Le week-end prochain, j\'irai à la mer avec des amis.', translation: 'Next weekend I will go to the beach with some friends.', follow_up: 'Ask them a follow-up question about their plans, in French.' },
+        { text: "J'aimerais voyager davantage, mais je n'ai pas beaucoup de temps libre.", translation: "I would like to travel more, but I don't have much free time.", follow_up: "Share something you'd like to do but don't have time for, in French." }
+      ],
+      'fr-u4': [
+        { text: "J'espère que tu pourras venir à la fête samedi soir.", translation: 'I hope you can come to the party Saturday night.', follow_up: 'Reply saying whether you can come, in French.' },
+        { text: "Si j'avais plus d'argent, je voyagerais dans le monde entier.", translation: 'If I had more money, I would travel the whole world.', follow_up: 'Say what you would do if you had more money, in French.' },
+        { text: "Il/Elle m'a dit qu'il/elle arriverait en retard.", translation: 'He/she told me that he/she would arrive late.', follow_up: 'Ask a follow-up question about why they will be late, in French.' }
+      ]
+    }
+  };
+
+  function buildListeningSteps(items){
+    return items.flatMap(it => [
+      { type: 'listening', text: it.text, translation: it.translation },
+      { type: 'chat', prompt: it.follow_up, hint: `A sentence or two is plenty — try to respond in ${appState.language}.` }
+    ]);
+  }
+
+  async function generateListeningItems(unit){
+    const topicWords = unit.lessons.flatMap(l => l.words).slice(0, 12).map(([w,m]) => `${w} (${m})`).join(', ');
+    const reply = await openaiChat([
+      { role: 'system', content: `You write short listening-comprehension items for a CEFR ${appState.level} learner of ${appState.language}. Draw on this unit's vocabulary/grammar where natural: ${topicWords || unit.theme}. Return strict JSON only: {"items":[{"text":"a short, natural one or two-sentence line in ${appState.language}, suitable to be read aloud for a listening/dictation exercise at this level","translation":"its English translation","follow_up":"a short English instruction asking the learner to respond to what was said, directing them to answer in ${appState.language}"}, ... exactly 3 items]}` },
+      { role: 'user', content: 'Generate the listening items now.' }
+    ], { json: true, temperature: 0.6 });
+    const parsed = JSON.parse(reply);
+    if(!parsed || !Array.isArray(parsed.items) || parsed.items.length !== 3) throw new Error('Malformed listening items');
+    parsed.items.forEach(it => {
+      if(typeof it.text !== 'string' || typeof it.translation !== 'string' || typeof it.follow_up !== 'string') throw new Error('Malformed listening item');
+    });
+    return parsed.items;
+  }
+
+  async function getListeningExercises(unit){
+    if(hasApiKey()){
+      try{
+        const items = await generateListeningItems(unit);
+        return buildListeningSteps(items);
+      }catch(err){ console.error(err); }
+    }
+    const fallback = (FALLBACK_LISTENING[appState.language] && FALLBACK_LISTENING[appState.language][unit.id]) || [];
+    return buildListeningSteps(fallback);
+  }
+
+  // Word-overlap similarity (0-100) used to grade a listening transcription
+  // without needing another AI call — accents/case/punctuation-insensitive.
+  function textSimilarity(a, b){
+    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean);
+    const wa = norm(a), wb = norm(b);
+    if(!wa.length || !wb.length) return 0;
+    const bag = {};
+    wb.forEach(w => { bag[w] = (bag[w] || 0) + 1; });
+    let hits = 0;
+    wa.forEach(w => { if(bag[w] > 0){ hits++; bag[w]--; } });
+    return Math.round((hits / Math.max(wa.length, wb.length)) * 100);
+  }
+
+  // Rough edit distance used for the offline "fill" grading fallback (no
+  // API key) — lets small typos still count as correct instead of a harsh
+  // exact-string match.
+  function editDistance(a, b){
+    const m = a.length, n = b.length;
+    const d = Array.from({ length: m + 1 }, (_, i) => [i, ...new Array(n).fill(0)]);
+    for(let j = 0; j <= n; j++) d[0][j] = j;
+    for(let i = 1; i <= m; i++){
+      for(let j = 1; j <= n; j++){
+        d[i][j] = a[i-1] === b[j-1] ? d[i-1][j-1] : 1 + Math.min(d[i-1][j], d[i][j-1], d[i-1][j-1]);
+      }
+    }
+    return d[m][n];
+  }
+  function normalizeAnswer(s){
+    return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[.?!…]+$/,'').replace(/\.\.\.$/,'').trim();
+  }
+
+  /* ================= LESSON RUNNER ================= */
+  const lessonRun = { lesson: null, exercises: [], index: 0, correct: 0, gradable: 0 };
+
+  // Annotates every lesson in a unit (plus its review) with done/unlocked/
+  // skipped state, read from the CURRENT language's progress bucket only —
+  // Italian and French never see or affect each other's unlock state.
+  function getUnitsWithState(){
+    const bucket = Progress.getLanguage(appState.language);
+    let prevUnitReviewDone = true; // unit 1 is always open
+    return currentUnits().map(unit => {
+      let prevDone = true; // lesson 1 of a unit is open whenever the unit itself is
+      const unitUnlocked = prevUnitReviewDone;
+      const lessons = unit.lessons.map(lesson => {
+        const rec = bucket.lessonsCompleted[lesson.id];
+        const done = !!rec;
+        const unlocked = unitUnlocked && (prevDone || done);
+        prevDone = done;
+        return { ...lesson, done, unlocked, skipped: !!(rec && rec.skipped) };
+      });
+      const allLessonsDone = lessons.every(l => l.done);
+      const reviewRec = bucket.lessonsCompleted[unit.review.id];
+      const review = { ...unit.review, done: !!reviewRec, unlocked: unitUnlocked && allLessonsDone, skipped: !!(reviewRec && reviewRec.skipped) };
+      const doneCount = lessons.filter(l => l.done).length + (review.done ? 1 : 0);
+      prevUnitReviewDone = review.done;
+      return { ...unit, lessons, review, unlocked: unitUnlocked, doneCount, totalLessons: lessons.length + 1, complete: review.done };
+    });
+  }
+
+  // The single next actionable lesson across the whole course — drives the
+  // glowing "up next" CTA on Home and the Lessons tab.
+  function findNextLesson(units){
+    for(const unit of units){
+      for(const lesson of unit.lessons){
+        if(lesson.unlocked && !lesson.done) return { unit, lesson };
+      }
+      if(unit.review.unlocked && !unit.review.done) return { unit, lesson: unit.review };
+    }
+    return null;
+  }
+
+  function openLessonModal(){ document.getElementById('lesson-modal-backdrop').classList.remove('hidden'); }
+  function closeLessonModal(){
+    document.getElementById('lesson-modal-backdrop').classList.add('hidden');
+    refreshDashboard();
+  }
+  document.getElementById('lesson-modal-close').addEventListener('click', closeLessonModal);
+  document.getElementById('lesson-modal-backdrop').addEventListener('click', (e) => {
+    if(e.target.id === 'lesson-modal-backdrop') closeLessonModal();
+  });
+
+  function lessonTagText(lesson){
+    const n = lesson.isReview ? 'Review' : `Lesson ${lesson.lessonNum}`;
+    const unitNum = lesson.unitId.slice(-1);
+    return `Unit ${unitNum} · ${n}`;
+  }
+
+  function skipLesson(lessonId){
+    const lesson = findLesson(lessonId);
+    if(!lesson || lesson.isReview) return;
+    if(!confirm(`Skip "${lesson.title}"? It'll be marked complete with no XP — you can still come back and redo it properly anytime.`)) return;
+    Progress.skipLesson(appState.language, lessonId);
+    refreshDashboard();
+  }
+
+  async function openLesson(lessonId){
+    const found = findLessonWithUnit(lessonId);
+    if(!found) return;
+    const { unit, lesson } = found;
+    lessonRun.lesson = lesson;
+    lessonRun.index = 0;
+    lessonRun.correct = 0;
+    lessonRun.gradable = 0;
+
+    const body = document.getElementById('lesson-modal-body');
+    body.innerHTML = `
+      <span class="lesson-modal-tag">${lessonTagText(lesson)}</span>
+      <h1>${lesson.icon} ${lesson.title}</h1>
+      <p class="sub">Preparing your exercises…</p>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    `;
+    openLessonModal();
+
+    if(lesson.type === 'Listening'){
+      lessonRun.exercises = await getListeningExercises(unit);
+    } else if(hasApiKey()){
+      try{
+        lessonRun.exercises = await generateLessonExercises(lesson);
+      }catch(err){
+        console.error(err);
+        lessonRun.exercises = buildFallbackExercises(lesson);
+      }
+    }else{
+      lessonRun.exercises = buildFallbackExercises(lesson);
+    }
+    lessonRun.gradable = lessonRun.exercises.length;
+    renderLessonQuestion();
+  }
+
+  function renderLessonQuestion(){
+    const { lesson, exercises, index } = lessonRun;
+    const item = exercises[index];
+    if(item.type === 'scenario') return renderScenarioStep();
+    if(item.type === 'chat') return renderChatStep();
+    if(item.type === 'fill') return renderFillStep();
+    if(item.type === 'listening') return renderListeningStep();
+
+    const body = document.getElementById('lesson-modal-body');
+    body.innerHTML = `
+      <span class="lesson-modal-tag">${lessonTagText(lesson)}</span>
+      <h1>${lesson.icon} ${lesson.title}</h1>
+      <p class="sub">Question ${index+1} of ${exercises.length}</p>
+      <div class="lesson-progress">
+        ${exercises.map((_, i) => `<div class="seg ${i < index ? 'done' : ''}"></div>`).join('')}
+      </div>
+      <div class="quiz-question">${item.question}</div>
+      <div class="quiz-options">
+        ${item.options.map((opt,i) => `<button class="quiz-option" data-i="${i}">${opt}</button>`).join('')}
+      </div>
+    `;
+    body.querySelectorAll('.quiz-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        body.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const chosen = parseInt(btn.dataset.i, 10);
+        if(chosen === item.correct_index) lessonRun.correct++;
+        setTimeout(() => {
+          lessonRun.index++;
+          if(lessonRun.index < exercises.length) renderLessonQuestion();
+          else finishLesson();
+        }, 300);
+      });
+    });
+  }
+
+  function renderScenarioStep(){
+    const { lesson, exercises, index } = lessonRun;
+    const item = exercises[index];
+    const body = document.getElementById('lesson-modal-body');
+    body.innerHTML = `
+      <span class="lesson-modal-tag">${lessonTagText(lesson)}</span>
+      <h1>${lesson.icon} ${lesson.title}</h1>
+      <p class="sub">Roleplay · Step ${index+1} of ${exercises.length}</p>
+      <div class="lesson-progress">
+        ${exercises.map((_, i) => `<div class="seg ${i < index ? 'done' : ''}"></div>`).join('')}
+      </div>
+      ${item.setup ? `<div class="scenario-setup">${item.setup}</div>` : ''}
+      <div class="scenario-npc">
+        <div class="qa-avatar ai">${(item.npc_name || 'NPC').charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="scenario-npc-name">${item.npc_name || 'They'} say:</div>
+          <div class="scenario-line">${item.npc_line}</div>
+          <div class="scenario-translation">${item.npc_translation || ''}</div>
+        </div>
+      </div>
+      <div class="quiz-options" id="scenario-options">
+        ${item.options.map((opt,i) => `<button class="quiz-option scenario-option" data-i="${i}"><span class="so-text">${opt.text}</span><span class="so-translation hidden-until-answered">${opt.translation || ''}</span></button>`).join('')}
+      </div>
+      <div id="scenario-reaction"></div>
+    `;
+    body.querySelectorAll('.scenario-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const chosen = parseInt(btn.dataset.i, 10);
+        const correct = chosen === item.correct_index;
+        body.querySelectorAll('.scenario-option').forEach((b, i) => {
+          b.classList.remove('selected');
+          b.disabled = true;
+          b.querySelector('.so-translation').classList.remove('hidden-until-answered');
+          if(i === item.correct_index) b.classList.add('correct-answer');
+        });
+        btn.classList.add('selected');
+        if(correct) lessonRun.correct++;
+        document.getElementById('scenario-reaction').innerHTML = `
+          <div class="scenario-reaction ${correct ? 'good' : 'gentle'}">
+            <strong>${correct ? '✅ Nice!' : '💬 They reply:'}</strong>
+            <div>${correct ? item.reaction_correct : item.reaction_incorrect}</div>
+          </div>
+          <button class="btn btn-blue" id="scenario-continue" style="margin-top:16px;width:100%;">Continue</button>
+        `;
+        document.getElementById('scenario-continue').addEventListener('click', () => {
+          lessonRun.index++;
+          if(lessonRun.index < exercises.length) renderLessonQuestion();
+          else finishLesson();
+        });
+      });
+    });
+  }
+
+  // The open-ended "now you try" step — real chat, graded live by OpenAI
+  // when available, with an encouraging offline fallback otherwise. This is
+  // the chat practice integrated directly into the lesson, not a separate
+  // disconnected page.
+  function renderChatStep(){
+    const { lesson, exercises, index } = lessonRun;
+    const item = exercises[index];
+    const body = document.getElementById('lesson-modal-body');
+    const speakHref = `speaking.html?mode=lesson&topic=${encodeURIComponent(lesson.scenarioBrief || lesson.title)}&name=${encodeURIComponent(appState.name)}&lang=${encodeURIComponent(appState.language)}&level=${encodeURIComponent(appState.level)}`;
+    body.innerHTML = `
+      <span class="lesson-modal-tag">${lessonTagText(lesson)}</span>
+      <h1>${lesson.icon} ${lesson.title}</h1>
+      <p class="sub">Chat practice · Step ${index+1} of ${exercises.length}</p>
+      <div class="lesson-progress">
+        ${exercises.map((_, i) => `<div class="seg ${i < index ? 'done' : ''}"></div>`).join('')}
+      </div>
+      <div class="scenario-setup">${item.prompt}</div>
+      <textarea class="field-input chat-step-input" id="chat-step-input" rows="3" placeholder="Type your answer in ${appState.language}…"></textarea>
+      <p style="font-size:12px;color:var(--ink-60);margin:6px 0 14px;">${item.hint}</p>
+      <div id="chat-step-feedback"></div>
+      <button class="btn btn-blue" id="chat-step-submit" style="width:100%;">Submit</button>
+      <a class="tutor-voice-link" href="${speakHref}" style="margin-top:12px;">🎙 Prefer to speak your answer instead? →</a>
+    `;
+    document.getElementById('chat-step-submit').addEventListener('click', () => submitChatStep(item));
+  }
+
+  async function submitChatStep(item){
+    const input = document.getElementById('chat-step-input');
+    const text = input.value.trim();
+    if(!text) return;
+    const submitBtn = document.getElementById('chat-step-submit');
+    const feedbackHost = document.getElementById('chat-step-feedback');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Checking…';
+
+    let good = true, feedbackText = "Nice work — you got your point across. Keep going!", corrected = null, mistakeType = 'none';
+    if(hasApiKey()){
+      try{
+        const raw = await openaiChat([
+          { role: 'system', content: `You are a warm, encouraging ${appState.language} tutor reviewing one attempt from a CEFR ${appState.level} learner at this task: "${item.prompt}". Their answer: "${text}". Look closely for spelling typos (wrong/missing letters or accents) and grammar issues (wrong verb form, agreement, word order) separately — don't just say right or wrong, help them understand WHAT kind of slip it was and how to fix it, the way a patient tutor would. Return strict JSON only: {"good": true/false (true if it's a reasonable, understandable attempt at the task, even with small mistakes — only false if it's off-topic, empty of real content, or in the wrong language), "mistake_type": "none"|"spelling"|"grammar" (the single most notable issue, if any — "none" if it's clean or the mistake is too minor to mention), "feedback": "one short encouraging sentence in English naming the specific slip if there is one, e.g. 'Almost — that's a spelling slip, you wrote X instead of Y' or 'Close! The verb form should agree with...' ", "corrected": "a more natural/correct version in ${appState.language}, or null if no changes are needed"}.` },
+          { role: 'user', content: 'Grade it now.' }
+        ], { json: true, temperature: 0.4 });
+        const parsed = JSON.parse(raw);
+        good = !!parsed.good;
+        feedbackText = parsed.feedback || feedbackText;
+        corrected = parsed.corrected || null;
+        mistakeType = parsed.mistake_type || 'none';
+      }catch(err){
+        console.error(err);
+        feedbackText = 'Good effort! (Could not reach OpenAI to grade this in detail — check your API key in config.js.)';
+      }
+    } else {
+      feedbackText = 'Good effort! Add an OpenAI API key in config.js to get real feedback — including spelling and grammar help — on answers like this.';
+    }
+
+    if(good) lessonRun.correct++;
+    const mistakeIcon = mistakeType === 'spelling' ? '✏️' : (mistakeType === 'grammar' ? '📘' : (good ? '✅' : '💬'));
+    feedbackHost.innerHTML = `
+      <div class="scenario-reaction ${good ? 'good' : 'gentle'}">
+        <strong>${mistakeIcon} ${feedbackText}</strong>
+        ${corrected ? `<div style="margin-top:6px;">Try: <em>${corrected}</em></div>` : ''}
+      </div>
+      <button class="btn btn-blue" id="chat-step-continue" style="margin-top:16px;width:100%;">Continue</button>
+    `;
+    input.disabled = true;
+    submitBtn.style.display = 'none';
+    document.getElementById('chat-step-continue').addEventListener('click', () => {
+      lessonRun.index++;
+      if(lessonRun.index < lessonRun.exercises.length) renderLessonQuestion();
+      else finishLesson();
+    });
+  }
+
+  // "How do you say X in {language}?" — a short free-text production step
+  // built straight from the lesson's own word bank. Graded by AI when a key
+  // is present, with feedback that names the specific kind of slip (typo vs
+  // grammar/form) rather than a flat right/wrong; otherwise a tolerant
+  // offline fuzzy-match so small typos still pass.
+  function renderFillStep(){
+    const { lesson, exercises, index } = lessonRun;
+    const item = exercises[index];
+    const body = document.getElementById('lesson-modal-body');
+    body.innerHTML = `
+      <span class="lesson-modal-tag">${lessonTagText(lesson)}</span>
+      <h1>${lesson.icon} ${lesson.title}</h1>
+      <p class="sub">Quick practice · Step ${index+1} of ${exercises.length}</p>
+      <div class="lesson-progress">
+        ${exercises.map((_, i) => `<div class="seg ${i < index ? 'done' : ''}"></div>`).join('')}
+      </div>
+      <div class="scenario-setup">How do you say <strong>"${item.promptMeaning}"</strong> in ${appState.language}?</div>
+      <input class="field-input" id="fill-step-input" type="text" placeholder="Type it here…" autocomplete="off">
+      <div id="fill-step-feedback" style="margin-top:12px;"></div>
+      <button class="btn btn-blue" id="fill-step-submit" style="width:100%;margin-top:12px;">Check</button>
+    `;
+    document.getElementById('fill-step-input').addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('fill-step-submit').click(); }
+    });
+    document.getElementById('fill-step-submit').addEventListener('click', () => submitFillStep(item));
+  }
+
+  async function submitFillStep(item){
+    const input = document.getElementById('fill-step-input');
+    const text = input.value.trim();
+    if(!text) return;
+    const submitBtn = document.getElementById('fill-step-submit');
+    const feedbackHost = document.getElementById('fill-step-feedback');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Checking…';
+
+    let good, feedbackText, mistakeType = 'none', corrected = null;
+    if(hasApiKey()){
+      try{
+        const raw = await openaiChat([
+          { role: 'system', content: `A CEFR ${appState.level} learner of ${appState.language} was asked to translate "${item.promptMeaning}" into ${appState.language}. The expected answer is "${item.correctAnswer}" (a trailing "..." in that means the phrase may continue or a subject pronoun may be dropped — don't penalize for that). They answered: "${text}". Return strict JSON only: {"good": true/false (true if it's correct or an acceptable equivalent/variant, allowing minor acceptable variation), "mistake_type": "none"|"spelling"|"grammar" (if not good: "spelling" for a typo/missing accent, "grammar" for wrong form/agreement/wrong word), "feedback": "one short, encouraging, SPECIFIC sentence — if wrong, say what kind of slip it was and the fix, don't just say incorrect", "corrected": "the correct form in ${appState.language}, or null if good is true"}.` },
+          { role: 'user', content: 'Grade it now.' }
+        ], { json: true, temperature: 0.3 });
+        const parsed = JSON.parse(raw);
+        good = !!parsed.good;
+        feedbackText = parsed.feedback || (good ? 'Correct!' : 'Not quite — see the fix below.');
+        mistakeType = parsed.mistake_type || 'none';
+        corrected = parsed.corrected || null;
+      }catch(err){
+        console.error(err);
+        good = normalizeAnswer(text) === normalizeAnswer(item.correctAnswer);
+        feedbackText = good ? 'Correct!' : `Here's the correct form: ${item.correctAnswer}`;
+      }
+    } else {
+      const dist = editDistance(normalizeAnswer(text), normalizeAnswer(item.correctAnswer));
+      good = dist <= 1;
+      feedbackText = good ? 'Correct!' : `Not quite — here's the correct form:`;
+      corrected = good ? null : item.correctAnswer;
+    }
+
+    if(good) lessonRun.correct++;
+    const icon = mistakeType === 'spelling' ? '✏️' : (mistakeType === 'grammar' ? '📘' : (good ? '✅' : '💬'));
+    feedbackHost.innerHTML = `
+      <div class="scenario-reaction ${good ? 'good' : 'gentle'}">
+        <strong>${icon} ${feedbackText}</strong>
+        ${corrected ? `<div style="margin-top:6px;">Correct form: <em>${corrected}</em></div>` : ''}
+      </div>
+    `;
+    input.disabled = true;
+    submitBtn.textContent = 'Continue';
+    submitBtn.disabled = false;
+    submitBtn.onclick = () => {
+      lessonRun.index++;
+      if(lessonRun.index < lessonRun.exercises.length) renderLessonQuestion();
+      else finishLesson();
+    };
+  }
+
+  // Listen-and-transcribe: plays the sentence with TTS (or, with no API
+  // key, briefly reveals the text to read instead, then hides it so the
+  // learner recalls it from memory) and checks what the learner typed
+  // against the original, before revealing the text + translation. The
+  // chat step immediately after each listening item asks the learner to
+  // respond to what they heard, reusing the same AI-graded chat flow.
+  function renderListeningStep(){
+    const { lesson, exercises, index } = lessonRun;
+    const item = exercises[index];
+    const body = document.getElementById('lesson-modal-body');
+    const canListen = hasApiKey();
+    body.innerHTML = `
+      <span class="lesson-modal-tag">${lessonTagText(lesson)}</span>
+      <h1>${lesson.icon} ${lesson.title}</h1>
+      <p class="sub">Listening · Step ${index+1} of ${exercises.length}</p>
+      <div class="lesson-progress">
+        ${exercises.map((_, i) => `<div class="seg ${i < index ? 'done' : ''}"></div>`).join('')}
+      </div>
+      <div class="scenario-setup">${canListen ? 'Tap play, listen carefully, then type what you heard.' : 'No API key configured, so there\'s no audio — read the line below, then it will hide so you can recall it from memory instead.'}</div>
+      <div class="listening-stage" id="listening-stage">
+        ${canListen ? `<button class="btn btn-ghost listening-play-btn" id="listening-play" type="button">🔊 Play Audio</button>` : `<div class="listening-reveal-text" id="listening-reveal-text">${item.text}</div>`}
+      </div>
+      <textarea class="field-input chat-step-input" id="listening-input" rows="2" placeholder="What did you hear?" ${canListen ? '' : 'disabled'}></textarea>
+      <div id="listening-feedback"></div>
+      <button class="btn btn-blue" id="listening-submit" style="width:100%;margin-top:10px;" ${canListen ? '' : 'disabled'}>Check</button>
+    `;
+    if(canListen){
+      document.getElementById('listening-play').addEventListener('click', () => playListeningAudio(item.text));
+    } else {
+      setTimeout(() => {
+        const el = document.getElementById('listening-reveal-text');
+        if(el){ el.textContent = '•••'; el.classList.add('hidden-reveal'); }
+        const inp = document.getElementById('listening-input');
+        const btn = document.getElementById('listening-submit');
+        if(inp) inp.disabled = false;
+        if(btn) btn.disabled = false;
+      }, 4000);
+    }
+    document.getElementById('listening-submit').addEventListener('click', () => submitListeningStep(item));
+  }
+
+  async function playListeningAudio(text){
+    const btn = document.getElementById('listening-play');
+    if(!btn) return;
+    btn.disabled = true;
+    btn.textContent = '⏳ Loading…';
+    try{
+      const url = await openaiSpeak(text);
+      await playLoud(url);
+    }catch(err){
+      console.error(err);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = '🔊 Play Again'; }
+    }
+  }
+
+  function submitListeningStep(item){
+    const input = document.getElementById('listening-input');
+    const text = input.value.trim();
+    if(!text) return;
+    const score = textSimilarity(text, item.text);
+    const good = score >= 60;
+    document.getElementById('listening-feedback').innerHTML = `
+      <div class="scenario-reaction ${good ? 'good' : 'gentle'}">
+        <strong>${good ? '✅ Nice listening!' : '💬 Here’s what was actually said:'}</strong>
+        <div style="margin-top:4px;">${item.text}</div>
+        <div style="font-size:12.5px;color:var(--ink-60);margin-top:2px;">${item.translation || ''}</div>
+      </div>
+      <button class="btn btn-blue" id="listening-continue" style="margin-top:16px;width:100%;">Continue</button>
+    `;
+    input.disabled = true;
+    document.getElementById('listening-submit').style.display = 'none';
+    if(good) lessonRun.correct++;
+    document.getElementById('listening-continue').addEventListener('click', () => {
+      lessonRun.index++;
+      if(lessonRun.index < lessonRun.exercises.length) renderLessonQuestion();
+      else finishLesson();
+    });
+  }
+
+  function finishLesson(){
+    const { lesson, exercises, correct } = lessonRun;
+    const wasAlreadyDone = Progress.isLessonComplete(appState.language, lesson.id);
+    Progress.completeLesson(appState.language, lesson.id, { xp: lesson.xp, score: `${correct}/${exercises.length}` });
+    Progress.addVocab(appState.language, lessonWordBank(lesson));
+
+    const units = getUnitsWithState();
+    const next = findNextLesson(units);
+    const speakHref = lesson.scenarioBrief
+      ? `speaking.html?mode=lesson&topic=${encodeURIComponent(lesson.scenarioBrief)}&name=${encodeURIComponent(appState.name)}&lang=${encodeURIComponent(appState.language)}&level=${encodeURIComponent(appState.level)}`
+      : null;
+
+    const body = document.getElementById('lesson-modal-body');
+    body.innerHTML = `
+      <div class="lesson-summary">
+        <div class="score-badge">${correct}/${exercises.length}</div>
+        <h1>${wasAlreadyDone ? 'Nice redo!' : (lesson.isReview ? 'Unit review complete!' : 'Lesson complete!')}</h1>
+        <p class="sub">${lesson.title} — ${correct === exercises.length ? 'perfect score!' : 'good effort, keep practicing.'}</p>
+        <div class="xp-pill">+${lesson.xp} XP earned</div>
+        <div class="lesson-summary-actions">
+          ${speakHref ? `<a class="btn btn-ghost" href="${speakHref}">🎙 Keep practicing this by speaking</a>` : ''}
+          <a class="btn btn-ghost" href="#tutor" onclick="closeLessonModal(); setAppTab('tutor');">💬 Ask the AI Tutor about this</a>
+        </div>
+        <br>
+        <button class="btn btn-blue btn-lg" onclick="closeLessonModal()">${next ? 'Back to Lessons' : 'Back to Lessons'}</button>
+      </div>
+    `;
+  }
+
+  /* ================= DASHBOARD RENDERING ================= */
+  function renderLessonsTab(){
+    const units = getUnitsWithState();
+    const next = findNextLesson(units);
+    const ctaHost = document.getElementById('lesson-cta-host');
+
+    if(next){
+      const { lesson } = next;
+      ctaHost.innerHTML = `
+        <div class="lesson-cta-glow">
+          <div class="lcg-left">
+            <span class="continue-tag">${lessonTagText(lesson)}</span>
+            <strong>Learning: ${lesson.title}</strong>
+            <span class="lcg-meta">${lesson.icon} ${lesson.type} · ${lesson.minutes} min · +${lesson.xp} XP</span>
+          </div>
+          <div class="lcg-actions">
+            <button class="btn btn-blue btn-glow" onclick="openLesson('${lesson.id}')">Start Lesson</button>
+            ${!lesson.isReview ? `<button class="btn-text-skip" onclick="skipLesson('${lesson.id}')">Already know this? Skip →</button>` : ''}
+          </div>
+        </div>`;
+    } else {
+      ctaHost.innerHTML = `
+        <div class="lesson-cta-glow done">
+          <div class="lcg-left">
+            <span class="continue-tag">All units complete</span>
+            <strong>You've finished every lesson in ${appState.language} 🎉</strong>
+            <span class="lcg-meta">Redo any lesson below anytime to sharpen it further.</span>
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('units-host').innerHTML = units.map((unit, ui) => {
+      const cards = unit.lessons.map((l, i) => {
+        let cls = 'lesson-card', numHtml = i + 1, tag = '';
+        if(l.done){
+          cls += ' done'; numHtml = l.skipped ? '⏭' : '✓';
+          tag = l.skipped
+            ? '<span class="lesson-card-tag skipped">Skipped</span>'
+            : '<span class="lesson-card-tag">Completed — tap to redo</span>';
+        } else if(!l.unlocked){ cls += ' locked'; numHtml = '🔒'; }
+        else { cls += ' active'; }
+        const clickAttr = l.unlocked ? ` onclick="openLesson('${l.id}')" style="cursor:pointer;"` : '';
+        const skipBtn = (l.unlocked && !l.done) ? `<button class="card-skip-btn" onclick="event.stopPropagation(); skipLesson('${l.id}')" title="Already know this? Skip">⏭</button>` : '';
+        return `<div class="${cls}"${clickAttr}>${skipBtn}<span class="lc-num">${numHtml}</span><strong>${l.title}</strong><span>${l.type} · ${l.minutes} min</span>${tag}</div>`;
+      }).join('');
+      const r = unit.review;
+      let rCls = 'lesson-card review-card-tile', rNum = '🏁';
+      if(r.done){ rCls += ' done'; rNum = '✓'; }
+      else if(!r.unlocked){ rCls += ' locked'; rNum = '🔒'; }
+      else { rCls += ' active'; }
+      const rClickAttr = r.unlocked ? ` onclick="openLesson('${r.id}')" style="cursor:pointer;"` : '';
+      const reviewCard = `<div class="${rCls}"${rClickAttr}><span class="lc-num">${rNum}</span><strong>${r.title}</strong><span>Review · ${r.minutes} min</span>${r.done ? '<span class="lesson-card-tag">Completed — tap to redo</span>' : ''}</div>`;
+
+      return `
+        <div class="unit-block${unit.unlocked ? '' : ' unit-locked'}">
+          <div class="unit-header">
+            <div>
+              <h2>Unit ${ui+1}: ${unit.title} <span class="unit-level-badge">${unit.level}</span>${!unit.unlocked ? ' 🔒' : ''}</h2>
+              <p>${unit.theme}</p>
+            </div>
+            <span class="unit-progress-pill">${unit.doneCount} / ${unit.totalLessons} complete</span>
+          </div>
+          <div class="lesson-grid">${cards}${reviewCard}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderHomeTab(){
+    const p = Progress.get();
+    const bucket = Progress.getLanguage(appState.language);
+    const units = getUnitsWithState();
+    const today = new Date().toISOString().slice(0,10);
+    const xpToday = p.activityLog[today] || 0;
+    const next = findNextLesson(units);
+    const avgPron = Progress.avgOf(bucket.pronunciationScores);
+
+    document.getElementById('home-kpi-xp').textContent = xpToday;
+    document.getElementById('home-kpi-streak').textContent = `${Math.min(p.streakDays, 7)} / 7`;
+    document.getElementById('home-kpi-vocab').textContent = bucket.vocab.length;
+    document.getElementById('home-kpi-pronunciation').textContent = avgPron !== null ? avgPron + '%' : '—';
+    document.getElementById('streak-pill').innerHTML = p.streakDays > 0
+      ? `🔥 <strong>${p.streakDays}</strong> day streak`
+      : `🔥 Start your streak today`;
+
+    const goalPct = Math.min(100, Math.round((xpToday / 30) * 100));
+    document.getElementById('home-ring').style.background = `conic-gradient(var(--blue) 0% ${goalPct}%, var(--gray-100) ${goalPct}% 100%)`;
+    document.getElementById('home-ring').dataset.pct = goalPct + '%';
+    document.getElementById('home-ring-caption').textContent = xpToday >= 30
+      ? "Today's goal complete — amazing work!"
+      : `${xpToday} of 30 XP earned — ${xpToday === 0 ? 'complete a lesson to get started.' : 'keep going!'}`;
+
+    const totalDone = units.reduce((s,u) => s + u.doneCount, 0);
+    const totalItems = units.reduce((s,u) => s + u.totalLessons, 0);
+
+    if(!next){
+      document.getElementById('continue-title').textContent = 'All units complete!';
+      document.getElementById('continue-icon').textContent = '🎉';
+      document.getElementById('continue-tag').textContent = `${appState.language} course`;
+      document.getElementById('continue-name').textContent = 'Every unit finished';
+      document.getElementById('continue-sub').textContent = 'Redo any lesson anytime from the Lessons tab.';
+      document.getElementById('continue-progress').style.width = '100%';
+      document.getElementById('continue-btn').textContent = 'Review Lessons';
+    } else {
+      const { unit, lesson } = next;
+      document.getElementById('continue-title').textContent = totalDone === 0 ? 'Ready when you are' : 'Continue your course';
+      document.getElementById('continue-icon').textContent = lesson.icon;
+      document.getElementById('continue-tag').textContent = lessonTagText(lesson);
+      document.getElementById('continue-name').textContent = `Learning: ${lesson.title}`;
+      document.getElementById('continue-sub').textContent = totalDone === 0 ? 'Not started yet' : `${totalDone} of ${totalItems} complete`;
+      document.getElementById('continue-progress').style.width = Math.round((totalDone / totalItems) * 100) + '%';
+      document.getElementById('continue-btn').textContent = totalDone === 0 ? 'Start' : 'Continue';
+    }
+    document.getElementById('continue-btn').onclick = () => setAppTab('lessons');
+
+    const upcoming = [];
+    for(const unit of units){
+      for(const l of unit.lessons){ if(l.unlocked && !l.done) upcoming.push(l); }
+      if(unit.review.unlocked && !unit.review.done) upcoming.push(unit.review);
+      if(upcoming.length >= 3) break;
+    }
+    document.getElementById('recommended-lessons-list').innerHTML = upcoming.length
+      ? upcoming.slice(0,3).map(l => `<div class="mini-lesson"><span class="ml-ic">${l.icon}</span><div><strong>${l.title}</strong><span>${l.minutes} min · ${l.type}</span></div><span class="ml-xp">+${l.xp} XP</span></div>`).join('')
+      : `<p style="font-size:13px;color:var(--ink-60);padding:8px 0;">You've unlocked everything so far — nice work!</p>`;
+
+    const learning = bucket.vocab.filter(v => v.status === 'learning').slice(-4).reverse();
+    document.getElementById('upcoming-reviews-body').innerHTML = learning.length
+      ? learning.map(v => `<div class="review-row"><span class="word">${v.word}</span><span class="tag2">${v.meaning}</span></div>`).join('')
+      : `<p style="font-size:13px;color:var(--ink-60);padding:8px 0;">No reviews yet — words you learn will show up here for spaced-repetition practice.</p>`;
+  }
+
+  function renderVocabTab(){
+    const bucket = Progress.getLanguage(appState.language);
+    document.getElementById('vocab-count-sub').textContent = `${bucket.vocab.length} word${bucket.vocab.length === 1 ? '' : 's'} learned yet`;
+    const body = document.getElementById('vocab-body');
+    if(!bucket.vocab.length){
+      body.innerHTML = `
+        <div class="panel" style="text-align:center;padding:48px 24px;">
+          <p style="font-size:14px;color:var(--ink-60);">You haven't learned any words yet — complete a lesson and they'll start showing up here for review.</p>
+          <button class="btn btn-blue" style="margin-top:16px;" onclick="setAppTab('lessons')">Start Your First Lesson</button>
+        </div>`;
+      return;
+    }
+    body.innerHTML = `<div class="vocab-grid">` + bucket.vocab.slice().reverse().map(v => `
+      <div class="vocab-card${v.status === 'mastered' ? ' mastered' : ''}">
+        <button class="vc-word speak-word" data-word="${v.word.replace(/"/g,'&quot;')}">${v.word} <span class="vc-speaker">🔊</span></button>
+        <div class="vc-mean">${v.meaning}</div>
+        <div class="vc-tag">${v.status === 'mastered' ? 'Mastered' : 'Learning'}</div>
+      </div>`).join('') + `</div>`;
+    body.querySelectorAll('.speak-word').forEach(el => {
+      el.addEventListener('click', () => speakVocabWord(el, el.dataset.word));
+    });
+  }
+
+  // Reusable click-to-hear for any foreign-language word/phrase in the app.
+  async function speakVocabWord(el, text){
+    if(!hasApiKey()){
+      el.title = 'Add an OpenAI API key in config.js to hear pronunciation';
+      return;
+    }
+    const speaker = el.querySelector('.vc-speaker');
+    if(speaker) speaker.textContent = '⏳';
+    try{
+      const url = await openaiSpeak(text);
+      const audio = new Audio(url);
+      audio.onended = () => { if(speaker) speaker.textContent = '🔊'; };
+      await audio.play();
+    }catch(err){
+      console.error(err);
+      if(speaker) speaker.textContent = '⚠️';
+      setTimeout(() => { if(speaker) speaker.textContent = '🔊'; }, 1500);
+    }
+  }
+
+  function renderProgressTab(){
+    const p = Progress.get();
+    const bucket = Progress.getLanguage(appState.language);
+    const days = Progress.last7DaysActivity();
+    const maxXp = Math.max(...days.map(d => d.xp), 1);
+    document.getElementById('progress-bar-chart').innerHTML = days.map(d =>
+      `<div class="bar-col${d.isToday ? ' active' : ''}"><div class="bar" style="height:${Math.max(2, Math.round((d.xp / maxXp) * 100))}%"></div><span>${d.label}</span></div>`
+    ).join('');
+    const hasActivity = days.some(d => d.xp > 0);
+    document.getElementById('progress-empty-note').style.display = hasActivity ? 'none' : 'block';
+
+    const avgPron = Progress.avgOf(bucket.pronunciationScores);
+    const avgGrammar = Progress.avgOf(bucket.grammarScores);
+    document.getElementById('prog-kpi-pronunciation').textContent = avgPron !== null ? avgPron + '%' : '—';
+    document.getElementById('prog-kpi-grammar').textContent = avgGrammar !== null ? avgGrammar + '%' : '—';
+    document.getElementById('prog-kpi-words').textContent = bucket.vocab.length;
+    document.getElementById('prog-kpi-lessons').textContent = Object.keys(bucket.lessonsCompleted).length;
+    document.getElementById('prog-kpi-xp').textContent = p.xp;
+    document.getElementById('prog-kpi-streak').textContent = `${p.streakDays} day${p.streakDays === 1 ? '' : 's'}`;
+    document.getElementById('prog-kpi-mastered').textContent = bucket.vocab.filter(v => v.status === 'mastered').length;
+    const redone = Object.values(bucket.lessonsCompleted).filter(l => l.timesCompleted > 1).length;
+    document.getElementById('prog-kpi-redone').textContent = redone;
+  }
+
+  function refreshDashboard(){
+    renderHomeTab();
+    renderLessonsTab();
+    renderVocabTab();
+    renderProgressTab();
+  }
+
+  function handleResetProgress(){
+    if(confirm(`Reset all XP, streak, lessons, and vocabulary for BOTH Italian and French on this device?`)){
+      Progress.reset();
+      refreshDashboard();
+      setAppTab('home');
+    }
+  }
+
+  /* ================= LANGUAGE SWITCHING ================= */
+  // Italian and French are completely separate courses with their own
+  // units, lessons and progress buckets — this swaps which one is active
+  // without touching the other's data at all.
+  // Placement: the first time a learner lands on the dashboard for a
+  // language after taking the level test, every Unit tagged below their
+  // CEFR level is marked skipped (0 XP) so a B1 learner starts in the B1
+  // unit rather than at "Say Hello". Runs once per language; skipped units
+  // can still be opened and redone from the Lessons tab.
+  function autoSkipBelowLevel(){
+    const bucket = Progress.getLanguage(appState.language);
+    if(bucket.autoPlaced) return;
+    const placedIdx = CEFR_ORDER.indexOf(appState.level);
+    if(placedIdx > 0){
+      currentUnits().forEach(unit => {
+        const unitIdx = CEFR_ORDER.indexOf(unit.level);
+        if(unitIdx !== -1 && unitIdx < placedIdx){
+          unit.lessons.concat([unit.review]).forEach(l => {
+            if(!Progress.isLessonComplete(appState.language, l.id)) Progress.skipLesson(appState.language, l.id);
+          });
+        }
+      });
+    }
+    Progress.markAutoPlaced(appState.language, appState.level);
+  }
+
+  function switchLanguage(lang){
+    if(lang !== 'Italian' && lang !== 'French') return;
+    appState.language = lang;
+    try{ localStorage.setItem('lingua-active-language', lang); }catch(e){}
+    if(window.LinguaCloud && window.LinguaCloud.user()) window.LinguaCloud.saveProfile({ language: lang }).catch(console.error);
+    document.getElementById('settings-lang').value = lang;
+    document.getElementById('lessons-title').textContent = `${lang} Course`;
+    const flag = lang === 'French' ? '🇫🇷' : '🇮🇹';
+    document.getElementById('greet-sub').textContent = `${flag} ${lang} · Level ${appState.level} · ${Object.keys(Progress.getLanguage(lang).lessonsCompleted).length === 0 ? 'Just getting started' : 'In progress'}`;
+    const openerLine = document.getElementById('tutor-opener');
+    if(openerLine) openerLine.textContent = `Ciao ${appState.name}! I'm your ${lang} tutor — ask me anything, or just say hello to get started.`;
+    tutorHistory = [];
+    updateVoiceLinks();
+    history.replaceState(null, '', location.pathname + '?' + new URLSearchParams({ name: appState.name, lang, level: appState.level }).toString() + location.hash);
+    refreshDashboard();
+  }
+
+  function updateVoiceLinks(){
+    const voiceParams = `&name=${encodeURIComponent(appState.name)}&lang=${encodeURIComponent(appState.language)}&level=${encodeURIComponent(appState.level)}`;
+    ['free','restaurant','travel'].forEach(m => {
+      const el = document.getElementById('speak-link-' + m);
+      if(el) el.href = `speaking.html?mode=${m}${voiceParams}`;
+    });
+    const tutorVoiceLink = document.getElementById('speak-link-tutor');
+    if(tutorVoiceLink) tutorVoiceLink.href = `speaking.html?mode=free${voiceParams}`;
+  }
+
+  /* ================= PERSONALIZATION ================= */
+  // appState is read by the tutor above and could be reused by other tabs later.
+  const appState = { name: 'Maya', language: 'Italian', level: 'A2' };
+
+  (async function(){
+    const params = new URLSearchParams(location.search);
+
+    // Cloud sync: if signed in, the Firestore copy of progress wins (so a new
+    // device picks up where you left off); if the account has no saved
+    // progress yet, whatever is local gets uploaded instead.
+    let cloud = null, profile = {};
+    try{
+      cloud = await window.LinguaCloudReady;
+      const user = cloud ? await cloud.whenAuthed() : null;
+      if(user){
+        const data = await cloud.pull();
+        if(data && data.progress) Progress.replaceAll(data.progress); else cloud.queueSave(Progress.get());
+        profile = (data && data.profile) || {};
+        profile.fallbackName = user.displayName;
+      } else cloud = null;
+    }catch(e){ console.error('Cloud sync skipped', e); cloud = null; }
+
+    let storedLang = null;
+    try{ storedLang = localStorage.getItem('lingua-active-language'); }catch(e){}
+    appState.name = params.get('name') || profile.name || profile.fallbackName || 'Maya';
+    appState.language = params.get('lang') || profile.language || storedLang || 'Italian';
+    appState.level = params.get('level') || profile.level || 'A2';
+
+    document.getElementById('greet-name').textContent = appState.name;
+    document.getElementById('topbar-name').textContent = appState.name;
+    document.getElementById('settings-name').value = appState.name;
+    document.getElementById('settings-lang').value = appState.language;
+    document.getElementById('lessons-title').textContent = `${appState.language} Course`;
+    const flag = appState.language === 'French' ? '🇫🇷' : '🇮🇹';
+    document.getElementById('greet-sub').textContent = `${flag} ${appState.language} · Level ${appState.level} · Just getting started`;
+    document.getElementById('retake-level-link').href = `level-test.html?name=${encodeURIComponent(appState.name)}`;
+    const openerLine = document.getElementById('tutor-opener');
+    if(openerLine){
+      openerLine.textContent = `Ciao ${appState.name}! I'm your ${appState.language} tutor — ask me anything, or just say hello to get started.`;
+    }
+
+    updateVoiceLinks();
+
+    if(!hasApiKey()){
+      const tutorTab = document.getElementById('tab-tutor');
+      const noticeHost = document.createElement('div');
+      tutorTab.insertBefore(noticeHost, tutorTab.querySelector('.tutor-panel'));
+      renderApiNotice(noticeHost, `No OpenAI API key configured — AI Tutor chat won't work until you add one.`);
+    }
+
+    if(params.get('level')) autoSkipBelowLevel();
+    if(cloud && (params.get('level') || params.get('lang') || params.get('name'))){
+      cloud.saveProfile({ name: appState.name, language: appState.language, level: appState.level }).catch(console.error);
+    }
+
+    const tab = (location.hash || '#home').slice(1);
+    refreshDashboard();
+    setAppTab(tab);
+  })();
+</script>
+
+<script>
+  document.querySelector('.app-signout').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try{
+      const c = window.LinguaCloud;
+      if(c && c.user()){
+        await c.signOut();
+        Progress.clearLocal();
+        try{ localStorage.removeItem('lingua-active-language'); }catch(_){}
+      }
+    }catch(err){ console.error(err); }
+    location.href = 'index.html';
+  });
+</script>
+<script src="common.js"></script>
+</body>
+</html>

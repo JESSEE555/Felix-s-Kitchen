@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Lingua AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+  (function(){ try { var t = localStorage.getItem('lingua-theme'); if(t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e){} })();
+</script>
+</head>
+<body>
+<div class="bg-fx" aria-hidden="true"><div class="day-layer"><div class="day-glow a"></div><div class="day-glow b"></div><div class="day-glow c"></div></div><div class="night-layer"><div class="moon"></div><div class="stars" id="bg-stars"></div></div></div>
+
+<div class="view-auth">
+  <div class="auth-shell">
+    <div class="auth-topbar">
+      <a href="index.html" class="nav-logo auth-logo"><span class="dot"></span>Lingua AI</a>
+      <button class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="icon">🌙</span></button>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" data-tab="signin" onclick="setAuthTab('signin')">Sign In</button>
+        <button type="button" class="auth-tab" data-tab="signup" onclick="setAuthTab('signup')">Sign Up</button>
+      </div>
+
+      <div id="auth-pane-signin">
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-sub">Sign in to continue your streak and pick up where you left off.</p>
+        <form onsubmit="handleAuth(event)">
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" placeholder="you@example.com" required>
+          <label class="field-label">Password</label>
+          <input class="field-input" type="password" placeholder="Your password" required>
+          <div class="field-row">
+            <label class="check-label"><input type="checkbox" checked> Remember me</label>
+            <a href="#" class="field-link" onclick="handleForgot(event)">Forgot password?</a>
+          </div>
+          <div class="auth-msg" style="font-size:13px;color:#E0393B;min-height:18px;margin:8px 0;"></div>
+          <button type="submit" class="btn btn-blue btn-lg auth-submit">Sign In</button>
+        </form>
+        <div class="auth-divider"><span>or</span></div>
+        <button type="button" class="btn btn-ghost auth-demo" onclick="handleDemo()">Continue as Demo Learner</button>
+        <button type="button" class="btn btn-ghost auth-google" onclick="handleGoogleSignIn()">
+          <span class="g-icon">G</span> Continue with Google
+        </button>
+      </div>
+
+      <div id="auth-pane-signup" class="hidden">
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-sub">Start free. No credit card required.</p>
+        <form onsubmit="handleAuth(event)">
+          <label class="field-label">Name</label>
+          <input class="field-input" type="text" placeholder="Your name" required>
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" placeholder="you@example.com" required>
+          <label class="field-label">Password</label>
+          <input class="field-input" type="password" placeholder="Create a password" required>
+          <div class="auth-msg" style="font-size:13px;color:#E0393B;min-height:18px;margin:8px 0;"></div>
+          <button type="submit" class="btn btn-blue btn-lg auth-submit">Create Account</button>
+        </form>
+        <div class="auth-divider"><span>or</span></div>
+        <button type="button" class="btn btn-ghost auth-demo" onclick="handleDemo()">Continue as Demo Learner</button>
+        <button type="button" class="btn btn-ghost auth-google" onclick="handleGoogleSignIn(true)">
+          <span class="g-icon">G</span> Continue with Google
+        </button>
+      </div>
+    </div>
+    <p class="auth-footnote">By continuing, you agree to Lingua AI's Terms of Service and Privacy Policy.</p>
+  </div>
+
+</div>
+
+<script>
+  function setAuthTab(tab){
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.getElementById('auth-pane-signin').classList.toggle('hidden', tab !== 'signin');
+    document.getElementById('auth-pane-signup').classList.toggle('hidden', tab !== 'signup');
+    history.replaceState(null, '', tab === 'signup' ? '?tab=signup' : 'signin.html');
+  }
+
+  // Land on the requested tab if arrived via ?tab=signup
+  (function(){
+    const params = new URLSearchParams(location.search);
+    if(params.get('tab') === 'signup') setAuthTab('signup');
+  })();
+
+  function deriveName(email){
+    if(!email) return 'Learner';
+    const handle = email.split('@')[0].replace(/[._\-\d]+/g,' ').trim();
+    if(!handle) return 'Learner';
+    return handle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+
+  function goToApp(name){
+    window.location.href = 'app.html?name=' + encodeURIComponent(name);
+  }
+
+  function goToLevelTest(name){
+    window.location.href = 'level-test.html?name=' + encodeURIComponent(name);
+  }
+
+  async function getCloud(){
+    const c = await window.LinguaCloudReady;
+    if(!c){
+      let why;
+      if(location.protocol === 'file:') why = 'This page was opened as a file (file://). Firebase needs the site served over http — run "python3 -m http.server" in the site folder and open http://localhost:8000/signin.html.';
+      else if(window.__cloudLoadError) why = 'Firebase\'s scripts failed to load (' + (window.__cloudLoadError.message || window.__cloudLoadError) + '). Check firebase-cloud.js is in the same folder, and that an ad blocker, VPN or firewall isn\'t blocking www.gstatic.com.';
+      else why = 'Firebase took too long to load. Check your connection and try again.';
+      throw new Error(why);
+    }
+    return c;
+  }
+  function friendlyError(e){
+    const code = (e && e.code) || '';
+    const map = {
+      'auth/invalid-credential': 'Email or password is incorrect.',
+      'auth/wrong-password': 'Email or password is incorrect.',
+      'auth/user-not-found': 'No account with that email — try Sign Up.',
+      'auth/email-already-in-use': 'That email already has an account — try Sign In.',
+      'auth/weak-password': 'Password must be at least 6 characters.',
+      'auth/invalid-email': 'That email address doesn\'t look right.',
+      'auth/popup-closed-by-user': 'Google sign-in was closed before finishing.',
+      'auth/operation-not-allowed': 'This sign-in method isn\'t enabled yet in the Firebase console.',
+      'auth/unauthorized-domain': 'This domain isn\'t authorized in Firebase (Authentication → Settings → Authorized domains).',
+      'auth/too-many-requests': 'Too many attempts — wait a moment and try again.'
+    };
+    return map[code] || (e && e.message) || 'Something went wrong.';
+  }
+  function setMsg(form, text){
+    const el = form.querySelector('.auth-msg');
+    if(el){ el.style.color = '#E0393B'; el.textContent = text || ''; }
+  }
+  async function handleAuth(event){
+    event.preventDefault();
+    const form = event.target;
+    const isSignup = !!form.closest('#auth-pane-signup');
+    const email = form.querySelector('input[type="email"]').value.trim();
+    const password = form.querySelector('input[type="password"]').value;
+    const nameField = form.querySelector('input[type="text"]');
+    const btn = form.querySelector('button[type="submit"]');
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = 'One moment…'; setMsg(form, '');
+    try{
+      const cloud = await getCloud();
+      if(isSignup){
+        const name = (nameField && nameField.value.trim()) || deriveName(email);
+        Progress.clearLocal();               // new account starts clean
+        await cloud.signUp(name, email, password);
+        goToLevelTest(name);
+      } else {
+        const user = await cloud.signIn(email, password);
+        goToApp(user.displayName || deriveName(email));
+      }
+    }catch(e){
+      console.error(e);
+      setMsg(form, friendlyError(e));
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+  async function handleForgot(event){
+    event.preventDefault();
+    const form = event.target.closest('form');
+    const email = form.querySelector('input[type="email"]').value.trim();
+    if(!email){ setMsg(form, 'Enter your email above first, then click "Forgot password?".'); return; }
+    try{
+      const cloud = await getCloud();
+      await cloud.resetPassword(email);
+      const el = form.querySelector('.auth-msg'); el.style.color = '#1B8A3A'; el.textContent = 'Password reset email sent — check your inbox.';
+    }catch(e){ setMsg(form, friendlyError(e)); }
+  }
+  // Demo stays local-only (no account, nothing saved to the cloud).
+  function handleDemo(){
+    Progress.clearLocal();
+    goToLevelTest('Maya');
+  }
+  async function handleGoogleSignIn(isSignup){
+    const pane = document.getElementById(isSignup ? 'auth-pane-signup' : 'auth-pane-signin');
+    const form = pane.querySelector('form');
+    try{
+      const cloud = await getCloud();
+      const { user, isNew } = await cloud.google();
+      const name = user.displayName || deriveName(user.email);
+      if(isNew){ Progress.clearLocal(); if(cloud.saveProfile) await cloud.saveProfile({ name }); goToLevelTest(name); }
+      else goToApp(name);
+    }catch(e){ console.error(e); setMsg(form, friendlyError(e)); }
+  }
+</script>
+<script src="progress.js"></script>
+<script>
+  // Load Firebase glue; if it fails, remember why and stop waiting immediately.
+  import('./firebase-cloud.js').catch(function(e){
+    window.__cloudLoadError = e; console.error('Firebase failed to load:', e);
+    if(window.__linguaCloudResolve) window.__linguaCloudResolve(null);
+  });
+</script>
+<script src="common.js"></script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find Your Level — Lingua AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+  (function(){ try { var t = localStorage.getItem('lingua-theme'); if(t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e){} })();
+</script>
+</head>
+<body>
+<div class="bg-fx" aria-hidden="true"><div class="day-layer"><div class="day-glow a"></div><div class="day-glow b"></div><div class="day-glow c"></div></div><div class="night-layer"><div class="moon"></div><div class="stars" id="bg-stars"></div></div></div>
+
+<div class="level-page">
+  <div class="level-shell">
+    <div class="level-topbar">
+      <a href="index.html" class="nav-logo"><span class="dot"></span>Lingua AI</a>
+      <button class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="icon">🌙</span></button>
+    </div>
+
+    <div class="level-progress" id="level-progress"></div>
+
+    <div class="level-card" id="level-card"><!-- steps render here --></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="openai.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const userName = params.get('name') || 'Learner';
+
+  const CEFR_ORDER = ['A1','A2','B1','B2','C1','C2'];
+  const QUIZ_LENGTH = 10; // longer test = more reliable estimate
+
+  // Self-reported experience anchors where the adaptive test *starts*,
+  // so a year of study doesn't get judged from a cold A1/A2 baseline.
+  const EXPERIENCE_OPTIONS = [
+    { label: "Just starting out", startIndex: 0 },
+    { label: "A few months", startIndex: 1 },
+    { label: "About a year", startIndex: 2 },
+    { label: "A few years", startIndex: 3 },
+    { label: "Very comfortable already", startIndex: 4 }
+  ];
+
+  const state = {
+    step: 0, // 0 = language, 1 = experience, 2..N+1 = quiz, then writing, then result
+    language: null,
+    answers: [], // {correct, levelIndexAtTime}
+    writing: '',
+    estimatedLevelIndex: 1, // overwritten once they pick an experience level
+    usedAiThisRun: null,    // becomes true/false once we know if AI questions are working
+    askedQuestions: [],     // text of questions already asked, so AI doesn't repeat itself
+    currentQuestion: null   // the question object currently on screen
+  };
+
+  // Static fallback bank — used whenever there's no API key, or a live
+  // generation call fails, so the test always works either way. Cycled
+  // through (not just used once) since the test is now longer than 5.
+  const quiz = {
+    Italian: [
+      { question: "How do you say \"Hello, how are you?\" in Italian?", options: ["Ciao, come stai?", "Ciao, dove vai?", "Buonanotte, grazie", "Arrivederci, bene"], correct_index: 0 },
+      { question: "Which word means \"yesterday\"? (Quale parola significa \"yesterday\"?)", options: ["Domani", "Oggi", "Ieri", "Sempre"], correct_index: 2 },
+      { question: "Complete: \"Io ___ andato al mercato.\" (I ___ went to the market.)", options: ["ho", "sono", "hai", "sei"], correct_index: 1 },
+      { question: "What does \"Potrebbe consigliarmi qualcosa?\" mean?", options: ["Can you recommend something to me?", "Where is the bathroom?", "I would like the bill", "How much does it cost?"], correct_index: 0 },
+      { question: "Which sentence uses the subjunctive correctly? (Quale frase usa correttamente il congiuntivo?)", options: ["Penso che è vero.", "Penso che sia vero.", "Penso che era vero.", "Penso che fosse vero, sempre."], correct_index: 1 },
+      { question: "What does \"purtroppo\" mean?", options: ["fortunately", "unfortunately", "usually", "rarely"], correct_index: 1 },
+      { question: "Complete: \"Se avessi tempo, ___ al cinema.\" (If I had time, I ___ to the cinema.)", options: ["vado", "andrei", "andavo", "sono andato"], correct_index: 1 },
+      { question: "What does \"appena\" mean in \"Sono appena arrivato\"?", options: ["already", "just (recently)", "never", "always"], correct_index: 1 },
+      { question: "Which is the correct plural of \"la valigia\" (the suitcase)?", options: ["le valigie", "le valigia", "i valigi", "le valige"], correct_index: 0 },
+      { question: "What does \"Mi dispiace, ma non ce la faccio\" mean?", options: ["I'm sorry, but I can't manage it", "I'm happy to help", "I don't understand the question", "See you tomorrow"], correct_index: 0 }
+    ],
+    French: [
+      { question: "How do you say \"Hello, how are you?\" in French?", options: ["Bonjour, comment ça va ?", "Bonsoir, où vas-tu ?", "Au revoir, merci", "Bonne nuit, ça va"], correct_index: 0 },
+      { question: "Which word means \"yesterday\"? (Quel mot signifie \"yesterday\" ?)", options: ["Demain", "Aujourd'hui", "Hier", "Toujours"], correct_index: 2 },
+      { question: "Complete: \"Je ___ allé au marché.\" (I ___ went to the market.)", options: ["ai", "suis", "as", "es"], correct_index: 1 },
+      { question: "What does \"Pourriez-vous me conseiller quelque chose ?\" mean?", options: ["Can you recommend something to me?", "Where is the bathroom?", "I would like the bill", "How much does it cost?"], correct_index: 0 },
+      { question: "Which sentence uses the subjunctive correctly? (Quelle phrase utilise correctement le subjonctif ?)", options: ["Je pense qu'il est vrai.", "Je pense qu'il soit vrai.", "Je veux qu'il est là.", "Je veux qu'il soit là."], correct_index: 3 },
+      { question: "What does \"malheureusement\" mean?", options: ["fortunately", "unfortunately", "usually", "rarely"], correct_index: 1 },
+      { question: "Complete: \"Si j'avais le temps, ___ au cinéma.\" (If I had time, I ___ to the cinema.)", options: ["vais", "irais", "allais", "suis allé"], correct_index: 1 },
+      { question: "What does \"à peine\" mean in \"Je suis à peine arrivé\"?", options: ["already", "just (barely/recently)", "never", "always"], correct_index: 1 },
+      { question: "Which is the correct plural of \"le journal\" (the newspaper)?", options: ["les journals", "les journaux", "les journeaux", "les journal"], correct_index: 1 },
+      { question: "What does \"Je suis désolé, mais je n'y arrive pas\" mean?", options: ["I'm sorry, but I can't manage it", "I'm happy to help", "I don't understand the question", "See you tomorrow"], correct_index: 0 }
+    ]
+  };
+
+  function totalSteps(){ return 2 + QUIZ_LENGTH + 1; } // language + experience + quiz + writing
+
+  function renderProgress(){
+    const total = totalSteps();
+    const bar = document.getElementById('level-progress');
+    bar.innerHTML = '';
+    for(let i=0;i<total;i++){
+      const seg = document.createElement('div');
+      seg.className = 'seg' + (i < state.step ? ' done' : '');
+      bar.appendChild(seg);
+    }
+  }
+
+  function render(){
+    renderProgress();
+    const card = document.getElementById('level-card');
+    if(state.step === 0) return renderLanguageStep(card);
+    if(state.step === 1) return renderExperienceStep(card);
+    if(state.step <= 1 + QUIZ_LENGTH) return loadAndRenderQuestion(card, state.step - 2);
+    if(state.step === totalSteps() - 1) return renderWritingStep(card);
+    return renderResultStep(card);
+  }
+
+  function renderLanguageStep(card){
+    card.innerHTML = `
+      <h1>Hi ${userName}! Let's find your level.</h1>
+      <p class="sub">Pick a language — we'll ask about your experience, then work through some questions in depth. Takes a few minutes, and the more thorough you are, the more accurate your placement will be.</p>
+      <div class="lang-pick-row">
+        <button class="lang-pick" data-lang="Italian"><span class="flag">🇮🇹</span><strong>Italian</strong></button>
+        <button class="lang-pick" data-lang="French"><span class="flag">🇫🇷</span><strong>French</strong></button>
+      </div>
+    `;
+    card.querySelectorAll('.lang-pick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.language = btn.dataset.lang;
+        state.step = 1;
+        render();
+      });
+    });
+  }
+
+  function renderExperienceStep(card){
+    card.innerHTML = `
+      <h1>How long have you been learning ${state.language}?</h1>
+      <p class="sub">This just sets a fair starting point — the questions that follow will adjust from here based on how you actually do.</p>
+      <div class="lang-pick-row" style="flex-direction:column;gap:10px;">
+        ${EXPERIENCE_OPTIONS.map((opt, i) => `<button class="lang-pick experience-pick" data-i="${i}" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;padding:16px 20px;"><strong>${opt.label}</strong></button>`).join('')}
+      </div>
+    `;
+    card.querySelectorAll('.experience-pick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const opt = EXPERIENCE_OPTIONS[parseInt(btn.dataset.i, 10)];
+        state.estimatedLevelIndex = opt.startIndex;
+        state.step = 2;
+        render();
+      });
+    });
+  }
+
+  function renderQuestionLoading(card, index){
+    card.innerHTML = `
+      <p class="sub" style="margin-bottom:6px;">Question ${index+1} of ${QUIZ_LENGTH}</p>
+      <div class="quiz-question">Preparing your next question…</div>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    `;
+  }
+
+  // Asks GPT for one question targeted at the learner's current estimated
+  // level, adapting up or down as they answer. Falls back to the static
+  // bank (and stops trying AI again this session) on any failure.
+  async function generateDynamicQuestion(index){
+    const targetLevel = CEFR_ORDER[Math.round(state.estimatedLevelIndex)];
+    const avoidList = state.askedQuestions.length
+      ? `Don't repeat or closely resemble these already-asked questions: ${state.askedQuestions.map(q => `"${q}"`).join(', ')}.`
+      : '';
+    const reply = await openaiChat([
+      { role: 'system', content: `You write single multiple-choice CEFR placement-test questions in ${state.language} for English-speaking learners who are NOT yet fluent. Target the question at CEFR level ${targetLevel} — it should be answerable by someone genuinely at that level, and meaningfully harder than an A1 question if the target is higher. Mix question types across a session: vocabulary, grammar, or short comprehension. CRITICAL: give enough English scaffolding in the QUESTION TEXT that a non-fluent learner understands what's being asked — the instructional framing should be in English. If a ${state.language} sentence appears in the stem purely as surrounding context (not the thing being tested), you may gloss it in parentheses. BUT never translate the exact word/phrase/sentence that the question is actually testing anywhere in the stem — e.g. a "what does X mean?" question must show ONLY "${state.language} text" in the stem with no English gloss of it at all, since that would hand over the answer before the learner even sees the options. HOWEVER, the four ANSWER OPTIONS must never include an English translation next to them if that would reveal or hint at the correct answer (e.g. when the options are the vocabulary/phrase actually being tested, or ${state.language} sentence variants being judged for correctness) — translating an option away gives away the test. Return strict JSON only, no other text, with keys "question" (string), "options" (array of exactly 4 strings), and "correct_index" (integer 0-3). ${avoidList}` },
+      { role: 'user', content: `Generate question ${index+1} of ${QUIZ_LENGTH}, targeting ${targetLevel}.` }
+    ], { json: true, temperature: 0.7 });
+
+    const parsed = JSON.parse(reply);
+    if(!parsed || typeof parsed.question !== 'string' || !Array.isArray(parsed.options) || parsed.options.length !== 4 || !Number.isInteger(parsed.correct_index) || parsed.correct_index < 0 || parsed.correct_index > 3){
+      throw new Error('Malformed question from model');
+    }
+    return parsed;
+  }
+
+  async function loadAndRenderQuestion(card, index){
+    renderQuestionLoading(card, index);
+
+    let item;
+    if(state.usedAiThisRun === false || !hasApiKey()){
+      item = quiz[state.language][index];
+    } else {
+      try{
+        item = await generateDynamicQuestion(index);
+        state.usedAiThisRun = true;
+      }catch(err){
+        console.error(err);
+        state.usedAiThisRun = false; // stop retrying AI for the rest of this test
+        item = quiz[state.language][index];
+      }
+    }
+
+    // If the step moved on while we were waiting (shouldn't normally happen,
+    // but guards against a stray double-click), bail out quietly.
+    if(state.step !== index + 2) return;
+
+    state.currentQuestion = item;
+    state.askedQuestions.push(item.question);
+
+    card.innerHTML = `
+      <p class="sub" style="margin-bottom:6px;">Question ${index+1} of ${QUIZ_LENGTH}</p>
+      <div class="quiz-question">${item.question}</div>
+      <div class="quiz-options">
+        ${item.options.map((opt,i) => `<button class="quiz-option" data-i="${i}">${opt}</button>`).join('')}
+      </div>
+      ${state.usedAiThisRun === false ? `<p style="font-size:12px;color:var(--ink-60);margin-top:14px;">Using our standard question bank for this one.</p>` : ''}
+    `;
+    card.querySelectorAll('.quiz-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        card.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const chosen = parseInt(btn.dataset.i, 10);
+        const correct = chosen === item.correct_index;
+        setTimeout(() => {
+          state.answers.push({ correct, levelIndexAtTime: state.estimatedLevelIndex });
+          // Gentle movement: ~2-3 consistent answers needed to shift a full
+          // CEFR level, so one lucky guess or one careless mistake over a
+          // 10-question test can't swing the result to the extreme ends.
+          state.estimatedLevelIndex = Math.max(0, Math.min(CEFR_ORDER.length - 1,
+            state.estimatedLevelIndex + (correct ? 0.4 : -0.4)));
+          state.step++;
+          render();
+        }, 250);
+      });
+    });
+  }
+
+  function renderWritingStep(card){
+    const prompt = state.language === 'Italian'
+      ? 'Scrivi 4-5 frasi per presentarti: nome, dove vivi, cosa fai, e cosa ti piace fare nel tempo libero.'
+      : 'Écris 4-5 phrases pour te présenter : nom, où tu habites, ce que tu fais, et ce que tu aimes faire pendant ton temps libre.';
+    card.innerHTML = `
+      <h1>One last thing — this is what makes it accurate</h1>
+      <p class="sub">${prompt}</p>
+      <p class="sub" style="margin-top:-14px;color:var(--ink-40);font-size:12.5px;">A few genuine sentences tell us far more than the quiz alone — especially if the quiz felt harder or easier than your real level.</p>
+      <div class="level-writing">
+        <textarea id="writing-input" placeholder="${state.language === 'Italian' ? 'Mi chiamo...' : 'Je m&apos;appelle...'}"></textarea>
+      </div>
+      <div class="level-actions">
+        <button class="level-skip" id="skip-writing">Skip (less accurate)</button>
+        <button class="btn btn-blue" id="submit-writing">See My Level →</button>
+      </div>
+      <div id="writing-error"></div>
+    `;
+    document.getElementById('skip-writing').addEventListener('click', () => {
+      state.writing = '';
+      finishTest();
+    });
+    document.getElementById('submit-writing').addEventListener('click', () => {
+      state.writing = document.getElementById('writing-input').value.trim();
+      finishTest();
+    });
+  }
+
+  // The quiz-based estimate is just wherever the adaptive walk landed —
+  // it already reflects both correctness and question difficulty.
+  function quizScoreLevel(){
+    return CEFR_ORDER[Math.round(state.estimatedLevelIndex)];
+  }
+
+  async function finishTest(){
+    state.step = totalSteps();
+    const card = document.getElementById('level-card');
+    renderProgress();
+    card.innerHTML = `
+      <h1>Scoring your level…</h1>
+      <p class="sub">One moment while we take a look.</p>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    `;
+
+    const quizLevel = quizScoreLevel();
+
+    if(!state.writing || !hasApiKey()){
+      renderResult(quizLevel, state.writing
+        ? "We estimated this from your quiz answers. Add an OpenAI API key in config.js for a more precise, writing-based assessment."
+        : "This estimate is based on your quiz answers only.");
+      return;
+    }
+
+    try{
+      const reply = await openaiChat([
+        { role: 'system', content: `You are a careful CEFR language-level assessor for ${state.language}. You're given a quiz-based estimate and a short writing sample from the same learner. The writing sample is the more reliable signal — it's a direct demonstration of real production, while the quiz can be thrown off by test anxiety, ambiguous options, or unfamiliarity with a multiple-choice format. If the writing shows accurate, coherent, multi-sentence production with good vocabulary range, place the learner at least at that level even if it's noticeably higher than the quiz estimate — don't let a handful of quiz mistakes cap someone who can clearly write well. Conversely if the writing is very minimal or has frequent basic errors, weigh the quiz estimate more. Return a strict JSON object with keys "level" (one of A1, A2, B1, B2, C1, C2) and "feedback" (a warm, specific, 2-3 sentence assessment of their writing, mentioning one strength and one thing to work on). Do not include anything besides that JSON.` },
+        { role: 'user', content: `Quiz-based estimate: ${quizLevel}\n\nLearner's writing sample:\n"""${state.writing}"""` }
+      ], { json: true, temperature: 0.4 });
+
+      const parsed = JSON.parse(reply);
+      renderResult(parsed.level || quizLevel, parsed.feedback || '');
+    }catch(err){
+      console.error(err);
+      renderResult(quizLevel, "We couldn't reach the AI grader (check your API key in config.js), so this estimate is based on your quiz answers only.");
+    }
+  }
+
+  function renderResult(level, feedback){
+    state.finalLevel = level;
+    const card = document.getElementById('level-card');
+    card.innerHTML = `
+      <div class="level-result">
+        <div class="level-badge">${level}</div>
+        <h1>You're at ${level} in ${state.language}!</h1>
+        <p class="sub">Nice work — we'll start you here and adjust as you go.</p>
+        ${feedback ? `<div class="feedback">${feedback}</div>` : ''}
+        <a class="btn btn-blue btn-lg" href="app.html?name=${encodeURIComponent(userName)}&lang=${encodeURIComponent(state.language)}&level=${encodeURIComponent(level)}">Continue to Dashboard →</a>
+      </div>
+    `;
+  }
+
+  render();
+</script>
+<script src="common.js"></script>
+</body>
+</html>
