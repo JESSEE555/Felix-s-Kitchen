@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speaking Practice — Lingua AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+  (function(){ try { var t = localStorage.getItem('lingua-theme'); if(t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e){} })();
+</script>
+</head>
+<body>
+<div class="bg-fx" aria-hidden="true"><div class="day-layer"><div class="day-glow a"></div><div class="day-glow b"></div><div class="day-glow c"></div></div><div class="night-layer"><div class="moon"></div><div class="stars" id="bg-stars"></div></div></div>
+
+<div class="voice-page">
+  <div style="width:100%;max-width:720px;display:flex;align-items:center;justify-content:space-between;">
+    <a href="app.html#speaking" class="voice-back" id="voice-back">← Back to Speaking</a>
+    <button class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="icon">🌙</span></button>
+  </div>
+
+  <div id="api-notice-host" style="width:100%;max-width:720px;margin-top:20px;"></div>
+
+  <div class="voice-header">
+    <h1 id="voice-title">Free Conversation</h1>
+    <p id="voice-subtitle">Talk about anything — the AI adapts to you.</p>
+  </div>
+
+  <div class="orb-stage" id="orb-stage">
+    <div class="buddy-stage" id="buddy-stage">
+      <svg class="buddy-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <path class="buddy-arm buddy-arm-left" d="M45,95 C22,90 8,105 12,122 C15,135 30,136 36,124 C40,116 40,104 45,95 Z"/>
+        <path class="buddy-arm buddy-arm-right" d="M155,95 C178,90 192,105 188,122 C185,135 170,136 164,124 C160,116 160,104 155,95 Z"/>
+        <path class="buddy-tuft" d="M96,14 C90,4 104,2 106,12 C108,20 100,24 96,14 Z"/>
+        <path class="buddy-body" d="M100,26 C56,26 28,58 28,98 C28,140 56,172 100,172 C144,172 172,140 172,98 C172,58 144,26 100,26 Z"/>
+        <g id="buddy-face-normal">
+          <path class="buddy-eyebrow" d="M62,80 Q72,73 84,79"/>
+          <path class="buddy-eyebrow" d="M116,79 Q128,73 138,80"/>
+          <ellipse class="buddy-eye-white" cx="73" cy="97" rx="12" ry="14"/>
+          <ellipse class="buddy-eye-white" cx="127" cy="97" rx="12" ry="14"/>
+          <circle class="buddy-pupil" id="buddy-pupil-l" cx="73" cy="99" r="6"/>
+          <circle class="buddy-pupil" id="buddy-pupil-r" cx="127" cy="99" r="6"/>
+          <path class="buddy-mouth" d="M84,126 Q100,134 116,126"/>
+        </g>
+        <g id="buddy-face-happy" style="display:none;">
+          <path class="buddy-eyebrow" d="M62,76 Q72,68 84,75"/>
+          <path class="buddy-eyebrow" d="M116,75 Q128,68 138,76"/>
+          <path class="buddy-eye-happy" d="M61,99 Q73,85 85,99"/>
+          <path class="buddy-eye-happy" d="M115,99 Q127,85 139,99"/>
+          <path class="buddy-mouth-happy" d="M80,120 Q100,148 120,120 Q100,135 80,120 Z"/>
+        </g>
+        <g id="buddy-face-thinking" style="display:none;">
+          <path class="buddy-eyebrow" d="M62,78 Q72,74 84,79"/>
+          <path class="buddy-eyebrow" d="M116,74 Q128,70 138,76"/>
+          <ellipse class="buddy-eye-white" cx="73" cy="97" rx="12" ry="14"/>
+          <ellipse class="buddy-eye-white" cx="127" cy="97" rx="12" ry="14"/>
+          <circle class="buddy-pupil" cx="79" cy="92" r="6"/>
+          <circle class="buddy-pupil" cx="133" cy="92" r="6"/>
+          <path class="buddy-mouth" d="M88,130 Q100,126 112,130"/>
+        </g>
+        <g id="buddy-face-laughing" style="display:none;">
+          <path class="buddy-eyebrow" d="M60,74 Q72,64 86,73"/>
+          <path class="buddy-eyebrow" d="M114,73 Q128,64 140,74"/>
+          <path class="buddy-eye-happy" d="M59,101 Q73,82 87,101"/>
+          <path class="buddy-eye-happy" d="M113,101 Q127,82 141,101"/>
+          <path class="buddy-mouth-laugh" d="M78,118 Q100,152 122,118 Q100,142 78,118 Z"/>
+          <ellipse class="buddy-blush" cx="58" cy="114" rx="9" ry="6"/>
+          <ellipse class="buddy-blush" cx="142" cy="114" rx="9" ry="6"/>
+        </g>
+      </svg>
+    </div>
+    <div class="mic-cluster">
+      <div class="orb-ring r1"></div>
+      <div class="orb-ring r2"></div>
+      <div class="orb-ring r3"></div>
+      <button class="orb" id="orb-btn" aria-label="Tap to speak">
+        <span class="orb-icon" id="orb-icon">🎙</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="voice-status" id="voice-status">Tap the orb to start speaking</div>
+  <div class="voice-hint" id="voice-hint">Recording happens locally, then goes only to OpenAI to transcribe</div>
+
+  <div class="speech-bubble-wrap" id="speech-bubble-wrap"></div>
+  <div id="feedback-strip-host"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="openai.js"></script>
+<script src="progress.js"></script>
+<script>
+  const modeCopy = {
+    free: {
+      title: 'Free Conversation',
+      subtitle: 'Talk about anything — the AI adapts to you.',
+      context: 'a free, casual conversation about anything the learner wants to talk about'
+    },
+    restaurant: {
+      title: 'Restaurant Roleplay',
+      subtitle: 'Practice ordering, paying, and small talk.',
+      context: 'a restaurant roleplay — you are the waiter, the learner is a customer ordering food, asking questions, and paying'
+    },
+    travel: {
+      title: 'Airport & Travel',
+      subtitle: 'Check-in, directions, and customs phrases.',
+      context: 'an airport/travel roleplay — you are an airline or customs agent, the learner is a traveler checking in, asking for directions, or going through customs'
+    },
+    lesson: {
+      title: 'Lesson Practice',
+      subtitle: 'Apply what you just learned, out loud.',
+      context: 'a roleplay conversation'
+    }
+  };
+
+  const params = new URLSearchParams(location.search);
+  const modeKey = modeCopy[params.get('mode')] ? params.get('mode') : 'free';
+  const mode = modeCopy[modeKey];
+  const learnerName = params.get('name') || 'Learner';
+  const language = params.get('lang') || 'Italian';
+  const level = params.get('level') || 'A2';
+  const lessonTopic = params.get('topic');
+
+  // Coming from a specific lesson (mode=lesson&topic=...) — scope the
+  // roleplay to that lesson's exact scenario instead of a generic chat,
+  // so speaking practice is integrated with what was just taught rather
+  // than a disconnected, context-free page.
+  if(modeKey === 'lesson' && lessonTopic){
+    mode.context = `a roleplay scenario practicing: ${lessonTopic}`;
+    mode.title = 'Practice: ' + (lessonTopic.length > 42 ? lessonTopic.slice(0,42) + '…' : lessonTopic);
+    mode.subtitle = 'Picking up right where your lesson left off.';
+  }
+  document.getElementById('voice-back').href = modeKey === 'lesson' ? 'app.html#lessons' : 'app.html#speaking';
+  document.getElementById('voice-back').textContent = modeKey === 'lesson' ? '← Back to Lessons' : '← Back to Speaking';
+
+  document.getElementById('voice-title').textContent = mode.title;
+  document.getElementById('voice-subtitle').textContent = mode.subtitle;
+
+  if(!hasApiKey()){
+    renderApiNotice(
+      document.getElementById('api-notice-host'),
+      'Voice practice needs an OpenAI API key to listen and respond.'
+    );
+  }
+
+  let conversation = []; // {role, content} for chat context
+
+  // A persistent identity — real personas with specific traits stay more
+  // consistent and feel more human than "an enthusiastic AI" ever does.
+  const personas = {
+    free: { name: 'Giulia', trait: "curious, a little playful, asks genuine follow-up questions about the learner's life, occasionally shares small opinions or preferences of her own (favorite foods, weekend plans, music) like a real person would" },
+    restaurant: { name: 'Marco', trait: 'a relaxed, chatty waiter who takes pride in the food, occasionally recommends dishes unprompted, has mild opinions about the menu' },
+    travel: { name: 'Sofia', trait: 'a brisk but friendly airport agent, efficient but warm, occasionally makes small talk about the destination or the weather' },
+    lesson: { name: 'Alex', trait: 'a friendly, patient conversation partner who fully commits to whatever specific situation is being practiced, staying in character for that exact scenario' }
+  };
+  const persona = personas[modeKey] || personas.free;
+
+  function systemPrompt(){
+    return `You are ${persona.name}, a real person (not an AI) inside a ${language} speaking-practice app, running ${mode.context}. Your personality: ${persona.trait}. You have genuine, VARIED moods and energy — sometimes calm and warm, sometimes more excited, sometimes teasing — never uniformly peppy or performatively enthusiastic every single line, that reads as fake. Speak the way real people actually talk: use contractions, occasional natural fillers or discourse markers native to ${language} (like "allora", "beh", "insomma" in Italian, or "alors", "bah", "enfin" in French) sparingly, and vary sentence length and rhythm. The learner's level is ${level} (CEFR) — keep your ${language} understandable for that level, but don't dumb down your personality. Keep your turn short (1-2 sentences) so the learner can respond. Ask genuine follow-up questions sometimes, like a person who's actually curious, not just a drilling tutor. CRITICAL: stay fully and consistently ${persona.name} for this ENTIRE conversation, no matter how many turns pass — never drift into a generic assistant tone, never break character, never mention being an AI, never restate who you are.`;
+  }
+
+  function feedbackPrompt(userText){
+    return `You are a ${language} tutor reviewing one thing a learner just said out loud: "${userText}". Return a strict JSON object with keys "grammar" (one sentence on grammatical correctness), "better" (a more natural way to phrase it, or "No changes needed!" if it's already great), "vocab" (2-4 relevant words/phrases from what they said or should know, comma-separated), and "fluency_score" (integer 0-100 estimating how natural and fluent the phrasing is — note you can only judge from the transcribed text, not actual pronunciation audio). Keep each text value under 20 words.`;
+  }
+
+  async function seedOpener(){
+    const stage = document.getElementById('orb-stage');
+    const status = document.getElementById('voice-status');
+    if(!hasApiKey()){
+      addTurn({ speaker: 'ai', text: modeKey === 'free' ? 'Ciao! Raccontami qualcosa di te.' : 'Buongiorno!', note: '(Add an API key in config.js for a real, dynamic opener)' });
+      return;
+    }
+    try{
+      const raw = await openaiChat([
+        { role: 'system', content: systemPrompt() + ` Return a strict JSON object with keys "reply" (your in-character opening line, in ${language}) and "translation" (its English translation).` },
+        { role: 'user', content: '(Start the conversation with a short, natural opening line in character.)' }
+      ], { json: true });
+      const parsed = JSON.parse(raw);
+      conversation.push({ role: 'assistant', content: parsed.reply });
+      addTurn({ speaker: 'ai', text: parsed.reply, translation: parsed.translation, autoplay: true });
+      setBuddyMood('happy');
+      bounceBuddy();
+      setTimeout(() => setBuddyMood('normal'), 2500);
+    }catch(err){
+      console.error(err);
+      addTurn({ speaker: 'ai', text: 'Ciao!', note: 'Could not reach OpenAI — check your API key in config.js.' });
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', seedOpener);
+
+  /* ================= RECORDING STATE MACHINE ================= */
+  const stage = document.getElementById('orb-stage');
+  const icon = document.getElementById('orb-icon');
+  const status = document.getElementById('voice-status');
+  const hint = document.getElementById('voice-hint');
+  const btn = document.getElementById('orb-btn');
+
+  let state = 'idle'; // idle -> listening -> thinking -> idle
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let cachedStream = null; // reused across recordings so the browser only asks for mic permission once
+  const buddyStage = document.getElementById('buddy-stage');
+  const GHOST_MINI_ICON = `<svg viewBox="0 0 200 240" width="20" height="20" aria-hidden="true">
+    <path d="M100,18 C58,18 32,50 32,92 L32,168 C32,180 46,184 60,177 C72,186 88,186 100,178 C112,186 128,186 140,177 C154,184 168,180 168,168 L168,92 C168,50 142,18 100,18 Z" fill="white"/>
+    <circle cx="78" cy="97" r="9" fill="#0071E3"/>
+    <circle cx="122" cy="97" r="9" fill="#0071E3"/>
+  </svg>`;
+
+  function setBuddyMood(mood){
+    ['normal', 'happy', 'thinking', 'laughing'].forEach(m => {
+      const el = document.getElementById('buddy-face-' + m);
+      if(el) el.style.display = (m === mood) ? '' : 'none';
+    });
+  }
+  function bounceBuddy(){
+    buddyStage.classList.remove('happy', 'laughing');
+    void buddyStage.offsetWidth; // restart the animation even if already played
+    buddyStage.classList.add('happy');
+  }
+  function laughBuddy(){
+    buddyStage.classList.remove('happy', 'laughing');
+    void buddyStage.offsetWidth;
+    buddyStage.classList.add('laughing');
+    setBuddyMood('laughing');
+  }
+
+  btn.addEventListener('click', () => {
+    if(state === 'idle') startListening();
+    else if(state === 'listening') stopListening();
+  });
+
+  async function getMicStream(){
+    if(!cachedStream){
+      cachedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    return cachedStream;
+  }
+  window.addEventListener('beforeunload', () => {
+    if(cachedStream) cachedStream.getTracks().forEach(t => t.stop());
+  });
+
+  async function startListening(){
+    if(!hasApiKey()){
+      status.textContent = 'Add an OpenAI API key in config.js to enable voice practice';
+      return;
+    }
+    try{
+      const stream = await getMicStream();
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        // Note: we intentionally do NOT stop the stream's tracks here —
+        // keeping the mic stream alive between recordings is what lets the
+        // browser skip re-prompting for permission every single time.
+        handleRecordingStopped();
+      };
+      mediaRecorder.start();
+
+      state = 'listening';
+      stage.className = 'orb-stage listening';
+      icon.textContent = '●';
+      status.textContent = 'Listening…';
+      hint.textContent = "Tap again when you're done speaking";
+    }catch(err){
+      console.error(err);
+      status.textContent = "Couldn't access your microphone — check your browser's permission settings.";
+    }
+  }
+
+  function stopListening(){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+      mediaRecorder.stop();
+    }
+    state = 'thinking';
+    stage.className = 'orb-stage thinking';
+    icon.textContent = '…';
+    status.textContent = 'Transcribing…';
+    hint.textContent = 'Sending your recording to OpenAI';
+    setBuddyMood('thinking');
+  }
+
+  async function handleRecordingStopped(){
+    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+
+    try{
+      const transcript = await openaiTranscribe(blob);
+      if(!transcript){
+        resetToIdle('Didn\'t catch that — tap to try again');
+        return;
+      }
+      clearVoiceHistory(); // only the most recent exchange stays on screen
+      addTurn({ speaker: 'user', text: transcript });
+      conversation.push({ role: 'user', content: transcript });
+
+      status.textContent = 'Thinking…';
+      hint.textContent = 'Getting feedback and a reply';
+
+      const [feedbackRaw, replyRaw] = await Promise.all([
+        openaiChat([{ role: 'system', content: 'You are a precise, concise language-learning feedback tool. Respond with JSON only.' }, { role: 'user', content: feedbackPrompt(transcript) }], { json: true, temperature: 0.3 }),
+        openaiChat([{ role: 'system', content: systemPrompt() + ` Return a strict JSON object with keys "reply" (your in-character reply, in ${language} — react genuinely to what they actually said before continuing the conversation; if it was genuinely nonsensical or accidentally hilarious, a brief real laugh is natural, but vary how you express it rather than always saying the same thing, and never for a normal minor mistake), "translation" (its English translation), and "reaction" (one of "normal", "impressed", "funny_mistake", "curious", or "encouraging" — pick whichever a real person in this moment would genuinely feel: "curious" if their answer makes you want to know more, "encouraging" if they're clearly trying hard on something difficult, "impressed" for a notably good answer, "funny_mistake" only for genuinely absurd/nonsensical results, otherwise "normal").` }, ...conversation], { json: true })
+      ]);
+
+      let feedback;
+      try{ feedback = JSON.parse(feedbackRaw); }
+      catch(e){ feedback = null; }
+
+      let replyText, replyTranslation, replyReaction;
+      try{
+        const parsedReply = JSON.parse(replyRaw);
+        replyText = parsedReply.reply;
+        replyTranslation = parsedReply.translation;
+        replyReaction = parsedReply.reaction;
+      }catch(e){
+        replyText = replyRaw; // fallback if the model didn't return valid JSON
+      }
+
+      if(feedback) addFeedback(feedback);
+      if(feedback && Number.isInteger(feedback.fluency_score)){
+        Progress.recordPronunciationScore(language, Math.max(0, Math.min(100, feedback.fluency_score)));
+      }
+      conversation.push({ role: 'assistant', content: replyText });
+      addTurn({ speaker: 'ai', text: replyText, translation: replyTranslation, autoplay: true });
+
+      const reaction = replyReaction || (feedback && feedback.reaction);
+      if(reaction === 'funny_mistake'){
+        laughBuddy();
+      } else if(reaction === 'impressed'){
+        setBuddyMood('happy');
+        bounceBuddy();
+      } else if(reaction === 'curious'){
+        setBuddyMood('thinking');
+      } else {
+        setBuddyMood('happy');
+      }
+
+      resetToIdle('Tap the orb to reply');
+    }catch(err){
+      console.error(err);
+      resetToIdle('Something went wrong — check your API key in config.js', true);
+    }
+  }
+
+  function resetToIdle(statusText, isError){
+    state = 'idle';
+    stage.className = 'orb-stage';
+    icon.textContent = '🎙';
+    status.textContent = statusText;
+    hint.textContent = isError ? '' : 'Recording happens locally, then goes only to OpenAI to transcribe';
+    setTimeout(() => setBuddyMood('normal'), 2500);
+  }
+
+  /* ================= SPEECH BUBBLE + FEEDBACK STRIP RENDERING ================= */
+  // Only the most recent line is ever shown — a small speech-bubble replaces
+  // its contents each turn instead of a scrolling transcript below the stage.
+  function clearVoiceHistory(){
+    document.getElementById('speech-bubble-wrap').innerHTML = '';
+    document.getElementById('feedback-strip-host').innerHTML = '';
+  }
+
+  function addTurn({speaker, text, note, translation, autoplay}){
+    const wrapHost = document.getElementById('speech-bubble-wrap');
+    wrapHost.innerHTML = ''; // replace, don't stack
+    const avatarLabel = speaker === 'ai' ? GHOST_MINI_ICON : learnerName.charAt(0).toUpperCase();
+    const speakBtnId = 'speak-' + Math.random().toString(36).slice(2,9);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'speech-bubble';
+    bubble.innerHTML = `
+      <div class="speech-bubble-head">
+        <div class="qa-avatar ${speaker === 'ai' ? 'ai qa-avatar-ghost' : 'user'}">${avatarLabel}</div>
+        <span class="speech-bubble-who">${speaker === 'ai' ? persona.name : 'You'}</span>
+      </div>
+      <div class="speech-bubble-text">${text}</div>
+      ${translation ? `<div class="speech-bubble-translation">${translation}</div>` : ''}
+      ${note ? `<div class="speech-bubble-note">${note}</div>` : ''}
+      ${speaker === 'ai' ? `<div class="speech-bubble-foot"><button class="speak-btn" id="${speakBtnId}">🔊 Play</button></div>` : ''}
+    `;
+    wrapHost.appendChild(bubble);
+
+    if(speaker === 'ai'){
+      const speakBtn = bubble.querySelector('#' + speakBtnId);
+      speakBtn.addEventListener('click', () => playAiLine(text, speakBtn));
+      if(autoplay && hasApiKey()){
+        playAiLine(text, speakBtn, { auto: true });
+      }
+    }
+  }
+
+  // Voices auto-play right after each AI turn so it feels like a real
+  // conversation. Some browsers block audio that isn't tied directly to a
+  // click — if that happens we just fall back to the manual Play button.
+  async function playAiLine(text, btn, { auto } = {}){
+    if(!hasApiKey()){
+      btn.textContent = '⚠️ Needs API key';
+      return;
+    }
+    btn.classList.add('loading');
+    btn.textContent = auto ? '🔊 Speaking…' : '🔊 Loading…';
+    try{
+      const url = await openaiSpeak(text);
+      btn.textContent = '🔊 Playing…';
+      const audio = playLoud(url);
+      audio.onended = () => { btn.textContent = '🔊 Play'; btn.classList.remove('loading'); };
+      await audio._playPromise;
+    }catch(err){
+      console.error(err);
+      btn.classList.remove('loading');
+      if(auto && err.name === 'NotAllowedError'){
+        // Autoplay was blocked by the browser — let them play it manually instead.
+        btn.textContent = '🔊 Tap to hear';
+      } else {
+        btn.textContent = '⚠️ Failed';
+      }
+    }
+  }
+
+  function addFeedback(fb){
+    const host = document.getElementById('feedback-strip-host');
+    const scoreRow = Number.isInteger(fb.fluency_score)
+      ? ` · <span class="fscore">${fb.fluency_score}/100 fluency</span>`
+      : '';
+    host.innerHTML = `
+      <div class="feedback-strip">
+        <strong>Grammar:</strong> ${fb.grammar || '—'}${scoreRow}<br>
+        <strong>Try instead:</strong> ${fb.better || '—'}<br>
+        <strong>Vocab:</strong> ${fb.vocab || '—'}
+      </div>
+    `;
+
+  }
+</script>
+<script src="common.js"></script>
+</body>
+</html>
